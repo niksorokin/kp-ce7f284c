@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kumiya v7 — mechanics study (overlay · split · sidebar)</title>
+<style>
+:root{
+  --font: Inter, -apple-system, "SF Pro Text", "Segoe UI", "Liberation Sans", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "DejaVu Sans Mono", monospace;
+  --bg:#e9eaf0;
+  --frame: linear-gradient(155deg,#c7d2f6 0%,#d4d0f1 48%,#e6d6ec 100%);
+  --frame-ink:#1d2246; --frame-sub:rgba(29,34,70,.58); --frame-hover:rgba(255,255,255,.42); --frame-sel:rgba(255,255,255,.78);
+  --sheet:#fff; --sheet-2:#f5f5f8; --sheet-3:#ececf1;
+  --line:rgba(22,24,44,.085); --line-2:rgba(22,24,44,.14);
+  --t1:#1b1c22; --t2:#4a4b56; --t3:#7b7c88; --t4:#a7a8b2;
+  --hover:rgba(22,24,44,.045); --sel:rgba(22,24,44,.075);
+  --accent:#3a5bcc; --accent-soft:#e9eefc; --accent-ink:#2b45a3;
+  --green:#2f9461; --amber:#c4820c; --amber-soft:#fbf3df; --amber-ink:#8a5a06; --red:#d2453d;
+  --sh-sheet:0 0 0 1px rgba(22,24,44,.05),0 1px 2px rgba(22,24,44,.05),0 8px 22px rgba(22,24,44,.05);
+  --sh-pop:0 0 0 1px rgba(22,24,44,.08),0 14px 40px rgba(22,24,44,.18),0 2px 6px rgba(22,24,44,.06);
+  --sh-win:0 24px 70px rgba(30,40,90,.22),0 0 0 1px rgba(255,255,255,.4);
+  --kbd-bg:var(--sheet-2); --scrim:rgba(20,22,40,.18);
+  --ov-w:344px;
+}
+[data-theme=dark]{
+  --bg:#111216;
+  --frame: linear-gradient(155deg,#232c52 0%,#2a2648 50%,#33263f 100%);
+  --frame-ink:#e8e9f3; --frame-sub:rgba(232,233,243,.55); --frame-hover:rgba(255,255,255,.07); --frame-sel:rgba(255,255,255,.13);
+  --sheet:#1f2026; --sheet-2:#282930; --sheet-3:#30313a;
+  --line:rgba(255,255,255,.075); --line-2:rgba(255,255,255,.13);
+  --t1:#ececf1; --t2:#b6b7c1; --t3:#878894; --t4:#5f606b;
+  --hover:rgba(255,255,255,.05); --sel:rgba(255,255,255,.08);
+  --accent:#7d97ef; --accent-soft:rgba(125,151,239,.16); --accent-ink:#a9bcf6;
+  --amber-soft:rgba(196,130,12,.16); --amber-ink:#e3b25a;
+  --sh-sheet:0 0 0 1px rgba(255,255,255,.05),0 8px 22px rgba(0,0,0,.25);
+  --sh-pop:0 0 0 1px rgba(255,255,255,.09),0 16px 44px rgba(0,0,0,.5);
+  --sh-win:0 24px 70px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.06);
+  --scrim:rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font:13.5px/1.45 var(--font);color:var(--t1);background:var(--bg);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input,textarea{font:inherit;color:inherit}
+svg{display:block;flex:none}
+.kbd{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:5px;border:1px solid var(--line-2);background:var(--kbd-bg);color:var(--t3);font-size:11px;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:.02em;white-space:nowrap}
+.mut{color:var(--t3)} .mut2{color:var(--t4)}
+
+/* scenario pills (prototype chrome) */
+#pills{height:40px;display:flex;align-items:center;gap:6px;padding:0 12px;overflow-x:auto;scrollbar-width:none;white-space:nowrap}
+#pills .brand{font-weight:650;letter-spacing:-.01em;margin-right:6px;display:flex;gap:6px;align-items:center}
+#pills .brand small{font-weight:500;color:var(--t3)}
+.pill{flex:none;height:26px;padding:0 9px 0 4px;border-radius:13px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.6);color:#1b2242;font-size:12.5px;box-shadow:0 0 0 1px rgba(22,24,44,.06)}
+[data-theme=dark] .pill{background:rgba(255,255,255,.07);color:var(--t2)}
+.pill b{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:9px;background:rgba(22,24,44,.07);font-size:10.5px;font-weight:600}
+.pill.on{background:#1b1c22;color:#fff} .pill.on b{background:rgba(255,255,255,.18)}
+[data-theme=dark] .pill.on{background:#e8e9f3;color:#111}
+#hash{font:11.5px var(--mono);color:var(--frame-sub);margin-left:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--frame-hover);padding:4px 8px;border-radius:7px;max-width:520px}
+
+/* window = Arc frame */
+#frame{position:absolute;top:40px;left:8px;right:8px;bottom:8px;border-radius:14px;background:var(--frame);box-shadow:var(--sh-win);display:flex;flex-direction:column;overflow:hidden;transition:inset .25s}
+#strip{height:40px;flex:none;display:flex;align-items:center;gap:4px;padding:0 10px 0 14px;color:var(--frame-ink)}
+.lights{display:flex;gap:7px;margin-right:10px}.lights i{width:12px;height:12px;border-radius:6px;background:#ee6a5f}.lights i:nth-child(2){background:#f5bd4f}.lights i:nth-child(3){background:#61c454}
+.ib{height:28px;min-width:28px;padding:0 6px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;gap:6px;color:var(--frame-ink);position:relative}
+.ib:hover{background:var(--frame-hover)} .ib.on{background:var(--frame-sel)}
+.ib .kbd{background:transparent;border-color:rgba(29,34,70,.18);color:var(--frame-sub)}
+[data-theme=dark] .ib .kbd{border-color:rgba(255,255,255,.16)}
+#strip .sp{flex:1}
+#strip .where{font-size:12.5px;color:var(--frame-sub);margin-left:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#body{flex:1;display:flex;min-height:0;position:relative}
+
+/* sidebar */
+#sb{width:236px;flex:none;display:flex;flex-direction:column;padding:2px 8px 10px 10px;color:var(--frame-ink);transition:margin-left .28s cubic-bezier(.3,1.25,.4,1),opacity .2s;overflow:hidden}
+body.sb-off #sb{margin-left:-236px;opacity:0;pointer-events:none}
+body.sb-off.sb-peek #sb{position:absolute;z-index:40;top:0;bottom:8px;left:6px;margin-left:0;opacity:1;pointer-events:auto;border-radius:12px;background:var(--frame);box-shadow:var(--sh-pop);padding-top:10px}
+#edge{position:absolute;left:0;top:0;bottom:0;width:10px;z-index:39;display:none}
+body.sb-off #edge{display:block}
+.search{position:relative;height:32px;border-radius:9px;background:var(--frame-hover);display:flex;align-items:center;gap:8px;padding:0 8px;color:var(--frame-sub);margin-bottom:10px;width:100%;text-align:left}
+.search:hover{background:var(--frame-sel)}
+.search>span:not(.kbd){flex:1;white-space:nowrap}
+.search .kbd{background:transparent;border-color:rgba(29,34,70,.16);color:var(--frame-sub)}
+.favs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.fav{height:40px;border-radius:9px;background:var(--frame-hover);display:grid;place-items:center;color:var(--frame-ink);position:relative}
+.fav:hover,.fav.on{background:var(--frame-sel)}
+.grp{font-size:11.5px;font-weight:600;color:var(--frame-sub);padding:10px 8px 4px;display:flex;justify-content:space-between;letter-spacing:.01em}
+.row{height:30px;border-radius:8px;display:flex;align-items:center;gap:8px;padding:0 8px;width:100%;text-align:left;color:var(--frame-ink);white-space:nowrap;user-select:none;position:relative}
+.row:hover{background:var(--frame-hover)} .row.on{background:var(--frame-sel);font-weight:550}
+.row .cnt{margin-left:auto;font-size:11.5px;color:var(--frame-sub);font-variant-numeric:tabular-nums}
+.row .open-dot{margin-left:auto;width:6px;height:6px;border-radius:3px;background:var(--accent)}
+.row .beside{margin-left:auto;opacity:0;color:var(--frame-sub)} .row:hover .beside{opacity:1}
+.row .open-dot + .beside{margin-left:6px}
+.sb-scroll{flex:1;overflow:auto;scrollbar-width:none;margin:0 -2px;padding:0 2px}
+.spaces{display:flex;gap:6px;align-items:center;padding-top:8px;border-top:1px solid rgba(29,34,70,.08)}
+.spaces i{width:8px;height:8px;border-radius:4px;background:var(--frame-sub);opacity:.4}.spaces i.on{opacity:1;background:var(--frame-ink)}
+.spaces span{font-size:12px;color:var(--frame-sub);margin-right:auto}
+.sbtip{font-size:11.5px;color:var(--frame-sub);padding:6px 8px 0;line-height:1.4}
+
+/* content + panes */
+#content{flex:1;min-width:0;position:relative;padding:0 8px 8px 0;transition:padding .2s}
+body.sb-off #content{padding-left:8px}
+#panes{height:100%;display:flex;gap:8px;transition:padding-right .26s cubic-bezier(.3,1.1,.4,1)}
+body.pinned #panes{padding-right:calc(var(--ov-w) + 8px)}
+.pane{flex:1 1 0;min-width:0;background:var(--sheet);border-radius:11px;box-shadow:var(--sh-sheet);display:flex;flex-direction:column;overflow:hidden;container-type:inline-size;position:relative;outline:1.5px solid transparent;outline-offset:0;transition:outline-color .15s}
+.multi .pane.focus{outline-color:var(--accent)}
+.pane.zoomed-out{display:none}
+.ph{height:46px;flex:none;display:flex;align-items:center;gap:8px;padding:0 10px 0 16px;border-bottom:1px solid transparent}
+.ph .crumb{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden;cursor:grab}
+.ph .crumb .c1{color:var(--t3)} .ph .crumb .c2{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.multi .pane:not(.focus) .ph .c2{color:var(--t2);font-weight:550}
+.ph .sp{flex:1}
+.pbtn{height:28px;min-width:28px;padding:0 7px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;gap:6px;color:var(--t2);position:relative}
+.pbtn:hover{background:var(--hover)}
+.pbtn.ghost{opacity:0;transition:opacity .12s}
+.pane:hover .pbtn.ghost,.pane.focus .pbtn.ghost{opacity:1}
+.avs{display:flex;align-items:center}
+.av{width:24px;height:24px;border-radius:12px;display:grid;place-items:center;font-size:9px;font-weight:650;letter-spacing:.02em;border:2px solid var(--sheet);margin-left:-5px;flex:none}
+.avs .av:first-child{margin-left:0}
+.av.ak{background:#f4e1dc;color:#9a4b3c}.av.ml{background:#dcefe3;color:#2e6b48}.av.sr{background:#efdfea;color:#8a3f6f}.av.am{background:#dfe5f6;color:#3a4f93}.av.dp{background:#f5ead4;color:#8a6420}.av.tc{background:#e6e6ea;color:#555}
+[data-theme=dark] .av{filter:saturate(.8) brightness(.85)}
+.addp{width:22px;height:22px;border-radius:11px;border:1px dashed var(--line-2);display:grid;place-items:center;color:var(--t3);margin-left:4px}
+.addp:hover{color:var(--accent);border-color:var(--accent)}
+.pb{flex:1;overflow:auto;min-height:0;position:relative}
+.pf{height:40px;flex:none;display:flex;align-items:center;gap:14px;padding:0 16px;font-size:12px;color:var(--t3);border-top:1px solid var(--line)}
+.pf span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.pf .sp{flex:1}
+.pf .agent{white-space:nowrap;height:28px;padding:0 6px 0 10px;border-radius:8px;background:var(--sheet-2);color:var(--t1);display:inline-flex;align-items:center;gap:8px;font-weight:550}
+.multi .pane:not(.focus) .pf{visibility:hidden}
+@container (max-width:680px){ .pf .opt{display:none} }
+
+/* reading column re-centres when overlay floats over it */
+.col{max-width:700px;margin:0 auto;padding:18px 28px 24px;transition:transform .26s cubic-bezier(.3,1.1,.4,1)}
+.pane.nudge .col{transform:translateX(calc(var(--nudge) * -1px))}
+
+/* chat */
+.msg{display:flex;gap:12px;margin:0 0 18px}
+.msg .who{width:28px;height:28px;border-radius:8px;flex:none;display:grid;place-items:center;font-size:10px;font-weight:650}
+.k{background:#1b1c22;color:#fff;font-weight:700;font-size:13px!important}
+[data-theme=dark] .k{background:#e8e9f3;color:#111}
+.msg .meta{font-size:12.5px;color:var(--t3);margin-bottom:2px}.msg .meta b{color:var(--t1);font-weight:600;margin-right:4px}
+.run{font-size:12.5px;color:var(--t3);margin:2px 0 6px;display:flex;align-items:center;gap:4px}
+.msg p{margin:0 0 6px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.chip{display:flex;align-items:center;gap:10px;padding:8px 12px 8px 10px;border-radius:10px;box-shadow:0 0 0 1px var(--line-2);background:var(--sheet);text-align:left;position:relative}
+.chip:hover{background:var(--sheet-2)}
+.chip .ic{width:28px;height:28px;border-radius:7px;background:var(--sheet-2);display:grid;place-items:center;color:var(--t2)}
+.chip b{display:block;font-weight:550;font-size:13px}.chip small{color:var(--t3);font-size:11.5px}
+.chip .hint{font-size:11px;color:var(--t4);margin-left:6px}
+.approve{border-radius:12px;background:var(--amber-soft);box-shadow:0 0 0 1px rgba(196,130,12,.28);padding:12px 14px;margin-top:8px}
+.approve b{font-weight:600}.approve .acts{display:flex;gap:8px;margin-top:10px;align-items:center}
+.btn{height:30px;padding:0 12px;border-radius:8px;display:inline-flex;align-items:center;gap:8px;font-weight:550;box-shadow:0 0 0 1px var(--line-2);background:var(--sheet);white-space:nowrap;position:relative}
+.btn.pri{background:var(--accent);color:#fff;box-shadow:none}
+.btn.pri .kbd{background:rgba(255,255,255,.2);border-color:transparent;color:#fff}
+.btn:hover{filter:brightness(.97)}
+.composer{margin:0 auto 12px;max-width:700px;width:calc(100% - 40px);border-radius:12px;box-shadow:0 0 0 1px var(--line-2),0 2px 8px rgba(22,24,44,.04);padding:10px 12px;background:var(--sheet);transition:transform .26s cubic-bezier(.3,1.1,.4,1)}
+.pane.nudge .composer{transform:translateX(calc(var(--nudge) * -1px))}
+.composer .ph2{color:var(--t4);height:22px}
+.composer .bar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t3);margin-top:6px}
+.composer .bar .sp{flex:1}
+.send{width:26px;height:26px;border-radius:13px;background:var(--accent);color:#fff;display:grid;place-items:center}
+.chatwrap{display:flex;flex-direction:column;height:100%}
+.chatwrap .msgs{flex:1;overflow:auto}
+
+/* tasks */
+.scope{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 6px 0 9px;border-radius:12px;background:var(--accent-soft);color:var(--accent-ink);font-size:12px;font-weight:550;white-space:nowrap}
+.scope button{opacity:.7}
+.board{display:grid;grid-template-columns:repeat(4,minmax(170px,1fr));gap:10px;padding:14px 16px;align-items:start;transition:padding .26s}
+.pane.cover .board,.pane.cover .tlist{padding-right:calc(var(--ov-w) + 24px)}
+.colm{background:var(--sheet-2);border-radius:10px;padding:8px}
+.colm h4{margin:2px 4px 8px;font-size:12.5px;font-weight:600}.colm h4 span{color:var(--t3);font-weight:500;margin-left:4px}
+.card{background:var(--sheet);border-radius:8px;box-shadow:0 0 0 1px var(--line),0 1px 2px rgba(22,24,44,.04);padding:9px 10px;margin-bottom:6px;cursor:pointer;width:100%;text-align:left;display:block}
+.card:hover{box-shadow:0 0 0 1px var(--line-2),0 2px 6px rgba(22,24,44,.06)}
+.card.sel{box-shadow:0 0 0 1.5px var(--accent)}
+.card.new{animation:flash 1.6s ease}
+@keyframes flash{0%{background:var(--accent-soft)}100%{background:var(--sheet)}}
+.card .t{font-weight:550;font-size:13px}.card .m{white-space:nowrap;display:flex;align-items:center;gap:8px;margin-top:6px;font-size:11.5px;color:var(--t3)}
+.card .m .sp{flex:1}
+.tag{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 7px;border-radius:6px;background:var(--sheet-2);color:var(--t2);font-size:11.5px;font-weight:550}
+.tag i{width:6px;height:6px;border-radius:3px;background:var(--accent)}
+.tag.sup i{background:var(--amber)}.tag.sal i{background:var(--green)}
+.done .t{text-decoration:line-through;color:var(--t3)}
+.tlist{display:none;padding:6px 12px 14px}
+.tlist h4{font-size:12px;font-weight:600;color:var(--t3);margin:12px 8px 4px}
+.tlist .card{box-shadow:none;border-radius:8px;margin:0;display:flex;align-items:center;gap:10px;padding:8px}
+.tlist .card:hover{background:var(--hover)}
+.tlist .card .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tlist .card.sel{background:var(--accent-soft);box-shadow:none}
+.cb{width:15px;height:15px;border-radius:5px;border:1.5px solid var(--line-2);flex:none}
+.done .cb{background:var(--accent);border-color:var(--accent)}
+@container (max-width:819px){ .board{display:none} .tlist{display:block} }
+.kmark{font-size:10px;font-weight:700;width:16px;height:16px;border-radius:4px;display:inline-grid;place-items:center;box-shadow:0 0 0 1px var(--line-2);color:var(--t2)}
+
+/* page */
+.page h1{font-size:30px;letter-spacing:-.02em;margin:18px 0 6px}
+.page .pm{font-size:12.5px;color:var(--t3);margin-bottom:18px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.page h3{font-size:16px;margin:20px 0 8px}
+.page .ck{display:flex;align-items:center;gap:10px;padding:5px 0}
+.callout{background:var(--sheet-2);border-radius:10px;padding:10px 12px;display:flex;gap:10px;color:var(--t2)}
+
+/* crm */
+.deal{display:flex;align-items:center;gap:12px;padding:10px 8px;border-bottom:1px solid var(--line);cursor:pointer}
+.deal:hover{background:var(--hover)}
+.deal b{font-weight:550;flex:1}.deal .v{font-variant-numeric:tabular-nums;font-weight:600}
+
+/* bot */
+.sched{border-radius:12px;box-shadow:0 0 0 1px var(--line-2);padding:12px 14px;margin-top:8px;background:var(--sheet)}
+.sched .line{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-weight:550}
+.sched .tok{height:24px;padding:0 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent-ink);display:inline-flex;align-items:center;font-weight:600}
+.sched dl{display:grid;grid-template-columns:90px 1fr;gap:4px 10px;margin:10px 0;font-size:12.5px}
+.sched dt{color:var(--t3)}.sched dd{margin:0}
+.status{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:11px;background:var(--sheet-2);color:var(--t2);font-size:12px;font-weight:550;white-space:nowrap}
+.status i{width:6px;height:6px;border-radius:3px;background:var(--green)}
+
+/* drop zones */
+#drop{position:absolute;pointer-events:none;border-radius:11px;background:color-mix(in srgb,var(--accent) 14%,transparent);box-shadow:inset 0 0 0 2px var(--accent);display:none;z-index:30;place-items:center;transition:left .12s,width .12s}
+#drop span{background:var(--accent);color:#fff;font-weight:600;font-size:12.5px;padding:5px 10px;border-radius:8px;box-shadow:var(--sh-pop)}
+
+/* overlay */
+#ov{position:absolute;z-index:20;top:50px;right:16px;bottom:16px;width:var(--ov-w);background:var(--sheet);border-radius:13px;box-shadow:var(--sh-pop);display:flex;flex-direction:column;overflow:hidden;transform:translateX(16px) scale(.985);opacity:0;pointer-events:none;transition:transform .24s cubic-bezier(.3,1.3,.4,1),opacity .16s}
+#ov.open{transform:none;opacity:1;pointer-events:auto}
+body.pinned #ov{top:0;right:8px;bottom:8px;box-shadow:var(--sh-sheet);border-radius:11px}
+.oh{display:flex;align-items:center;gap:4px;padding:8px 8px 0 10px}
+.tabs{display:flex;gap:2px;background:var(--sheet-2);border-radius:9px;padding:2px;flex:1}
+.tab{flex:1;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:550;color:var(--t3);font-size:12.5px;white-space:nowrap;position:relative}
+.tab.on{background:var(--sheet);color:var(--t1);box-shadow:0 0 0 1px var(--line),0 1px 2px rgba(22,24,44,.06)}
+.tab .kbd{height:16px;font-size:10px;min-width:16px;padding:0 3px}
+.pbtn.on{color:var(--accent);background:var(--accent-soft)}
+.pbtn[disabled]{opacity:.35;cursor:not-allowed}
+.octx{display:flex;align-items:center;gap:8px;padding:10px 14px 4px;font-size:12px;color:var(--t3);white-space:nowrap;overflow:hidden}
+.octx b{color:var(--t1);font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.ob{flex:1;overflow:auto;padding:4px 14px 14px;transition:opacity .12s}
+.sec{border-bottom:1px solid var(--line);padding:10px 0}
+.sec:last-child{border-bottom:0}
+.sec h5{margin:0 0 6px;font-size:12px;font-weight:600;color:var(--t3);display:flex;justify-content:space-between;align-items:center}
+.sec h5 button{color:var(--accent);font-weight:550;font-size:12px}
+.orow{display:flex;align-items:center;gap:10px;min-height:32px;padding:3px 6px;margin:0 -6px;border-radius:7px;width:calc(100% + 12px);text-align:left}
+.orow:hover{background:var(--hover)}
+.orow .r{margin-left:auto;font-size:12px;color:var(--t3);white-space:nowrap}
+.orow .ok{color:var(--green)} .orow .wait{color:var(--amber);font-weight:550}
+.orow .ic{width:24px;height:24px;border-radius:6px;background:var(--sheet-2);display:grid;place-items:center;color:var(--t2);flex:none}
+.obeside{margin-left:auto;height:24px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:550;color:var(--accent);display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.obeside:hover{background:var(--accent-soft)}
+.obeside.is-open{color:var(--t3);font-weight:500}
+.dot{width:7px;height:7px;border-radius:4px;flex:none;margin-top:6px}
+.done-row{display:flex;gap:10px;padding:4px 0}.done-row b{font-weight:550;display:block}.done-row small{color:var(--t3)}
+.ctxchips{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 12px}
+.cchip{height:26px;padding:0 9px 0 7px;border-radius:8px;box-shadow:0 0 0 1px var(--line-2);display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:550}
+.cchip.on{background:var(--accent-soft);color:var(--accent-ink);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent)}
+.cchip.off{color:var(--t4);text-decoration:line-through}
+.sug{display:block;width:100%;text-align:left;padding:9px 11px;border-radius:10px;box-shadow:0 0 0 1px var(--line);margin-bottom:6px}
+.sug:hover{background:var(--sheet-2)}
+.sug b{font-weight:550;display:block}.sug small{color:var(--t3)}
+.ans{background:var(--sheet-2);border-radius:10px;padding:10px 12px;margin:8px 0;font-size:13px}
+.sample{font-size:10.5px;font-weight:650;letter-spacing:.04em;text-transform:uppercase;color:var(--amber-ink);background:var(--amber-soft);padding:2px 6px;border-radius:5px;margin-right:6px}
+.ocomp{margin:0 10px 10px;border-radius:11px;box-shadow:0 0 0 1px var(--line-2);padding:9px 10px}
+.ocomp .ph2{color:var(--t4);height:20px}
+.ocomp .bar{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--t3);margin-top:6px}
+.tone{display:flex;gap:6px;flex-wrap:wrap}.tone button{height:26px;padding:0 10px;border-radius:13px;box-shadow:0 0 0 1px var(--line-2);font-size:12px}.tone button.on{background:var(--t1);color:var(--sheet);box-shadow:none}
+.ta{width:100%;min-height:74px;border-radius:9px;border:1px solid var(--line-2);background:var(--sheet);padding:8px 10px;resize:none;font-size:12.5px;line-height:1.45}
+.tg{width:30px;height:18px;border-radius:9px;background:var(--line-2);position:relative;flex:none;margin-left:auto}
+.tg::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:7px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .15s}
+.tg.on{background:var(--accent)}.tg.on::after{left:14px}
+
+/* peek, command bar, sheet */
+#dim{position:fixed;inset:0;background:var(--scrim);z-index:55;display:none}body.dim #dim{display:block}
+#scrim{position:absolute;inset:0;background:var(--scrim);z-index:50;display:none}
+#scrim.on{display:block}
+#peek{position:absolute;z-index:51;left:50%;top:5%;width:min(820px,80%);height:88%;transform:translateX(-50%);background:var(--sheet);border-radius:14px;box-shadow:var(--sh-pop);display:none;flex-direction:column;overflow:hidden;container-type:inline-size}
+#peek.on{display:flex}
+#cmd,#sheet{position:fixed;z-index:60;left:50%;top:18%;width:620px;max-width:calc(100% - 24px);transform:translateX(-50%);background:var(--sheet);border-radius:14px;box-shadow:var(--sh-pop);display:none;overflow:hidden}
+#cmd.on,#sheet.on{display:block}
+#cmd input,#sheet input{width:100%;height:50px;border:0;outline:0;background:transparent;padding:0 18px;font-size:15.5px;border-bottom:1px solid var(--line)}
+.cl{max-height:340px;overflow:auto;padding:6px}
+.ci{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;cursor:pointer}
+.ci.on{background:var(--sel)}
+.ci .ic{color:var(--t2)} .ci .sub{color:var(--t3);font-size:12px} .ci .r{margin-left:auto;display:flex;gap:4px}
+.cgrp{font-size:11.5px;color:var(--t3);font-weight:600;padding:8px 10px 4px}
+.cfoot{display:flex;gap:14px;align-items:center;padding:9px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--t3)}
+.cfoot span{display:inline-flex;gap:6px;align-items:center}
+.modechip{font-size:11.5px;font-weight:600;color:var(--accent-ink);background:var(--accent-soft);padding:3px 8px;border-radius:6px;margin:10px 0 0 16px;display:inline-block}
+#sheet{width:720px;top:12%}
+.sh-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 24px;padding:6px 16px 16px;max-height:470px;overflow:auto}
+.sh-cols .ci{height:32px;padding:0 8px}
+
+/* toast */
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:#1f2027;color:#f4f4f7;padding:9px 14px;border-radius:10px;font-size:13px;opacity:0;transition:.2s;z-index:90;pointer-events:none;display:flex;gap:10px;align-items:center;box-shadow:var(--sh-pop)}
+#toast.on{opacity:1;transform:translateX(-50%)}
+#toast .kbd{background:rgba(255,255,255,.12);border-color:transparent;color:#ddd}
+
+/* hold ⌘ → key badges */
+body.showkeys [data-k]::after{content:attr(data-k);position:absolute;top:-9px;left:50%;transform:translateX(-50%);z-index:95;background:#1b1c22;color:#fff;font:600 10.5px/1 var(--font);padding:3px 5px;border-radius:5px;box-shadow:0 2px 6px rgba(0,0,0,.25);white-space:nowrap;pointer-events:none}
+[data-theme=dark] body.showkeys [data-k]::after,[data-theme=dark].showkeys [data-k]::after{background:#e8e9f3;color:#111}
+
+/* focus mode */
+body.fm #frame{inset:46px 4px 4px 4px}
+body.fm #strip{height:10px;overflow:hidden;opacity:0}
+body.fm .pf,body.fm #ov{display:none}
+body.fm .ph{opacity:0;transition:opacity .2s} body.fm .pane:hover .ph{opacity:1}
+
+/* mobile: one pane, switcher, bottom sheet */
+#switcher{display:none}
+@media (max-width:760px){
+  #frame{left:0;right:0;bottom:0;border-radius:0}
+  #strip{padding:0 6px}
+  .lights,#strip .where,.hide-m{display:none}
+  #content{padding:0!important}
+  #sb{position:absolute;z-index:45;top:0;bottom:0;left:0;width:84%;margin:0!important;background:var(--frame);box-shadow:var(--sh-pop);padding-top:10px;transform:translateX(0);transition:transform .25s}
+  body.sb-off #sb{transform:translateX(-105%);opacity:1}
+  #edge{display:none!important}
+  #panes{flex-direction:column;gap:0}
+  .pane{border-radius:0;display:none}
+  .pane.focus{display:flex}
+  .multi .pane.focus{outline-color:transparent}
+  #switcher{display:flex;gap:2px;margin:0 8px 6px;background:rgba(255,255,255,.45);border-radius:9px;padding:2px}
+  [data-theme=dark] #switcher{background:rgba(255,255,255,.07)}
+  #switcher.none{display:none}
+  #switcher button{flex:1;height:28px;border-radius:7px;font-size:12.5px;font-weight:550;color:var(--frame-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px}
+  #switcher button.on{background:var(--sheet);color:var(--t1);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  #ov{position:fixed;left:0;right:0;top:auto;bottom:0!important;width:auto;height:58%;border-radius:16px 16px 0 0;transform:translateY(100%)}
+  #ov.open{transform:none}
+  body.pinned #panes{padding-right:0}
+  .ov-pin{display:none}
+  .pf{display:none}
+  #cmd,#sheet{top:8%}
+  .sh-cols{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="pills"></div>
+
+<div id="frame">
+  <div id="strip">
+    <div class="lights"><i></i><i></i><i></i></div>
+    <button class="ib" data-act="sb" data-k="⌘S" title="Sidebar · ⌘S"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="13" height="11" rx="2.5"/><path d="M6 2.8v10.4"/></svg></button>
+    <button class="ib hide-m" title="Back · ⌘["><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
+    <button class="ib hide-m" title="Forward · ⌘]"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg></button>
+    <span id="hash" title="The split lives in the URL"></span><span class="where" id="where"></span>
+    <span class="sp"></span>
+    <button class="ib hide-m" data-act="ov-info" data-k="⌘I" id="b-info" title="In this … · ⌘I"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="13" height="11" rx="2.5"/><path d="M10 2.8v10.4"/></svg><span id="b-info-l">In this chat</span> <span class="kbd">⌘I</span></button>
+    <button class="ib" data-act="ov-ask" data-k="⌘J" id="b-ask" title="Ask kumiya · ⌘J"><span class="kmini" style="font-weight:700;font-size:14px;width:16px;text-align:center">K</span><span class="hide-m">Ask kumiya</span> <span class="kbd hide-m">⌘J</span></button>
+    <button class="ib" data-act="theme" data-k="⌘⇧L" title="Theme · ⌘⇧L (right-click: match system)" id="b-theme"></button>
+    <button class="ib hide-m" data-act="sheet" data-k="⌘/" title="Shortcuts · ⌘/"><span class="kbd">⌘/</span></button>
+  </div>
+  <div id="switcher" class="none"></div>
+  <div id="body">
+    <div id="edge"></div>
+    <aside id="sb">
+      <button class="search" data-act="cmd" data-k="⌘K"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><span>Search or run…</span><span class="kbd">⌘K</span></button>
+      <div class="favs" id="favs"></div>
+      <div class="sb-scroll" id="sbl"></div>
+      <div class="spaces"><span>Northwind Labs</span><i class="on"></i><i></i><i></i></div>
+    </aside>
+    <main id="content">
+      <div id="panes"></div>
+      <div id="drop"><span>Open beside</span></div>
+      <aside id="ov"></aside>
+    </main>
+    <div id="scrim"></div>
+    <div id="peek"></div>
+  </div>
+</div>
+
+<div id="dim"></div>
+<div id="cmd"></div>
+<div id="sheet"></div>
+<div id="toast"></div>
+
+<script>
+/* ---------- icons ---------- */
+const I = {
+  chat:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2.5 4.5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v4.5a2 2 0 0 1-2 2H7l-3 2.5v-2.5h0a1.5 1.5 0 0 1-1.5-1.5z"/></svg>',
+  page:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 1.8h5l3 3v9.4H4z"/><path d="M9 1.8v3h3M6 8h4M6 10.5h4"/></svg>',
+  tasks:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="m5.5 8 1.8 1.8L10.7 6.4"/></svg>',
+  crm:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h12M2 8h8M2 12h5"/></svg>',
+  bot:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="5" width="11" height="8" rx="2.5"/><path d="M8 5V2.8M6 9h0M10 9h0" stroke-linecap="round" stroke-width="1.8"/></svg>',
+  agent:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>',
+  up:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="6"/><path d="M8 4.8V8l2.2 1.4"/></svg>',
+  x:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m4 4 8 8M12 4l-8 8"/></svg>',
+  swap:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.5 5.5h10l-2.5-2.5M13.5 10.5h-10l2.5 2.5"/></svg>',
+  pin:'<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 2h4l-.5 4 2.5 2.5H4L6.5 6z"/><path d="M8 8.5V14"/></svg>',
+  beside:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="13" height="11" rx="2"/><path d="M8 2.8v10.4M10.5 8h2M11.5 7v2"/></svg>',
+  sun:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/></svg>',
+  moon:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M13 9.5A5.5 5.5 0 0 1 6.5 3a5.5 5.5 0 1 0 6.5 6.5z"/></svg>',
+  plus:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3v10M3 8h10"/></svg>',
+  zoom:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9"/></svg>',
+};
+
+/* ---------- data (fictional) ---------- */
+const R = {
+  'upnext':{type:'upnext',title:'Up next',c1:'',icon:'up'},
+  'chat/atlas':{type:'chat',title:'Atlas v2 launch plan',c1:'Atlas launch',icon:'chat',project:'atlas'},
+  'chat/seed':{type:'chat',title:'Seed extension',c1:'Fundraising',icon:'chat',project:'fund'},
+  'chat/hiring':{type:'chat',title:'Founding designer loop',c1:'Hiring',icon:'chat',project:'hiring'},
+  'chat/pricing':{type:'chat',title:'Pricing ideas',c1:'Personal',icon:'chat'},
+  'page/launch-plan':{type:'page',title:'Launch plan',c1:'Atlas launch',icon:'page'},
+  'tasks/all':{type:'tasks',title:'Tasks',c1:'',icon:'tasks'},
+  'tasks/atlas':{type:'tasks',title:'Tasks',c1:'',icon:'tasks',scope:'Atlas launch'},
+  'crm/pipeline':{type:'crm',title:'Pipeline',c1:'CRM',icon:'crm'},
+  'bot/metrics':{type:'bot',title:'Metrics bot',c1:'Bots',icon:'bot'},
+};
+let TASKS = [
+  {id:1,t:'Update pricing page for Atlas v2',s:'In progress',p:'atlas',tag:'Atlas',due:'Today',who:'am'},
+  {id:2,t:'Write launch announcement email',s:'In progress',p:'atlas',tag:'Atlas',due:'Nov 12',who:'sr'},
+  {id:3,t:'Draft FAQ for the new sharing model',s:'Review',p:'atlas',tag:'Support',due:'Nov 10',who:'k',cls:'sup'},
+  {id:4,t:'Embargo list for press',s:'Review',p:'atlas',tag:'Atlas',due:'Nov 11',who:'ak'},
+  {id:5,t:'Record 30s product teaser',s:'To do',p:'atlas',tag:'Atlas',due:'Nov 13',who:'sr'},
+  {id:6,t:'QA invite flow on mobile',s:'To do',p:'atlas',tag:'Atlas',due:'Nov 14',who:'dp'},
+  {id:7,t:'Send data room to Juniper Ventures',s:'To do',p:'fund',tag:'Fundraising',due:'Nov 7',who:'ak',cls:'sal'},
+  {id:8,t:'Set up Atlas launch teamspace',s:'Done',p:'atlas',tag:'Atlas',due:'Oct 30',who:'am'},
+];
+const STAGES=['To do','In progress','Review','Done'];
+const FAVS=['upnext','chat/atlas','tasks/all','crm/pipeline'];
+
+/* ---------- state ---------- */
+const S = {panes:['chat/atlas'],f:0,o:null,pin:false,sb:true,sbAuto:false,fm:false,zoom:-1,sel:null,askOff:{},ans:null,peek:null,botSaved:false,botTone:'Brief',theme:'light'};
+const narrow = () => innerWidth <= 760;
+const cur = () => S.panes[S.f];
+const meta = r => R[r];
+
+/* ---------- keymap: single source for hints, ⌘/ sheet, handlers ---------- */
+const KEYS = [
+  {k:'mod+k',g:'Overlay & bar',l:'Command bar',run:()=>openCmd('here')},
+  {k:'mod+\\',g:'Panes',l:'Open beside…',run:()=>openCmd('beside')},
+  {k:'mod+i',g:'Overlay & bar',l:'In this … (overlay)',run:()=>toggleOv('info')},
+  {k:'mod+j',g:'Overlay & bar',l:'Ask kumiya',run:()=>toggleOv('ask')},
+  {k:'mod+.',g:'Overlay & bar',l:'Pin / unpin overlay',run:()=>togglePin()},
+  {k:'mod+s',g:'App',l:'Show / hide sidebar',run:()=>toggleSb()},
+  {k:'mod+shift+s',g:'App',l:'Focus mode (hide everything)',run:()=>toggleFm()},
+  {k:'mod+shift+l',g:'App',l:'Theme light / dark',run:()=>toggleTheme()},
+  {k:'mod+/',g:'App',l:'Keyboard shortcuts',run:()=>toggleSheet()},
+  {k:'mod+alt+arrowleft',g:'Panes',l:'Focus pane on the left',run:()=>focusPane(S.f-1)},
+  {k:'mod+alt+arrowright',g:'Panes',l:'Focus pane on the right',run:()=>focusPane(S.f+1)},
+  {k:'ctrl+mod+arrowleft',g:'Panes',l:'Move pane left (swap)',run:()=>movePane(S.f,-1)},
+  {k:'ctrl+mod+arrowright',g:'Panes',l:'Move pane right (swap)',run:()=>movePane(S.f,1)},
+  {k:'mod+shift+enter',g:'Panes',l:'Zoom focused pane',run:()=>toggleZoom()},
+  {k:'alt+w',g:'Panes',l:'Close focused pane (⌘W in the app)',run:()=>closePane(S.f)},
+];
+const VIEWKEYS = {
+  chat:[['⇧-click','Open a sidebar item beside'],['Drag','Sidebar item → edge of content'],['Click chip','Peek · then ⇧↵ beside']],
+  tasks:[['Click','Select task → shows in overlay'],['Drag header','Onto other pane → swap']],
+  page:[['⌘J','Ask about this page']],crm:[['Click','Select deal']],bot:[['⌘I','Edit bot in overlay']],upnext:[['⇧-click','Open beside']],
+};
+function fk(k){const o=['ctrl','alt','shift','mod'];return k.split('+').sort((a,b)=>(o.indexOf(a)+1||9)-(o.indexOf(b)+1||9)).map(p=>({mod:'⌘',shift:'⇧',alt:'⌥',ctrl:'⌃',enter:'↵',arrowleft:'←',arrowright:'→',escape:'Esc'}[p]||p.toUpperCase())).join('')}
+function match(e,k){
+  const p=k.split('+'), key=p[p.length-1];
+  const wantCtrl=p.includes('ctrl'), wantMod=p.includes('mod');
+  const mod=e.metaKey||e.ctrlKey;
+  if(wantMod&&!mod) return false; if(!wantMod&&!wantCtrl&&(e.metaKey||e.ctrlKey)) return false;
+  if(wantCtrl&&!(e.ctrlKey&&e.metaKey)&&wantMod) return false;
+  if(!!p.includes('shift')!==e.shiftKey) return false;
+  if(!!p.includes('alt')!==e.altKey) return false;
+  const ek=(e.key||'').toLowerCase(), code=e.code||'';
+  if(key==='.') return ek==='.'||code==='Period';
+  if(key==='/') return ek==='/'||ek==='?'||code==='Slash';
+  if(key==='\\') return ek==='\\'||code==='Backslash';
+  if(key.length===1) return code==='Key'+key.toUpperCase()||ek===key;
+  return ek===key;
+}
+
+/* ---------- hash: #/chat/atlas+tasks/atlas?f=2&o=info&pin=1&sb=0&fm=1 ---------- */
+let writing=false;
+function toHash(){
+  const q=[];
+  if(S.panes.length>1&&S.f>0) q.push('f='+(S.f+1));
+  if(S.o) q.push('o='+S.o);
+  if(S.pin&&S.o) q.push('pin=1');
+  if(!S.sb&&!S.sbAuto) q.push('sb=0');
+  if(S.fm) q.push('fm=1');
+  return '#/'+S.panes.join('+')+(q.length?'?'+q.join('&'):'');
+}
+function fromHash(){
+  const h=decodeURIComponent(location.hash.replace(/^#\/?/,''));
+  if(!h) return false;
+  const [path,qs='']=h.split('?');
+  const panes=path.split('+').filter(r=>R[r]);
+  if(!panes.length) return false;
+  const q=Object.fromEntries(qs.split('&').filter(Boolean).map(x=>x.split('=')));
+  S.panes=panes.slice(0,3); S.f=Math.min((+q.f||1)-1,S.panes.length-1);
+  S.o=q.o==='info'||q.o==='ask'?q.o:null; S.pin=q.pin==='1'; S.fm=q.fm==='1';
+  S.sbAuto=false; S.sb=q.sb!=='0'&&!narrow();
+  if(S.panes.length===3&&S.sb&&!narrow()){S.sb=false;S.sbAuto=true}
+  S.zoom=-1; S.sel=null; S.ans=null; S.peek=null;
+  return true;
+}
+addEventListener('hashchange',()=>{if(writing){writing=false;return} closeCmd();$('#sheet').classList.remove('on');syncDim();fromHash();render()});
+
+/* ---------- actions ---------- */
+function maxPanes(){ if(narrow()) return 3; const w=document.getElementById('body').clientWidth; return w>=1100?3:w>=760?2:1 }
+function scoped(route,base){ // an app opened beside a chat is scoped to that chat's project
+  const b=R[base]; if(route==='tasks/all'&&b&&b.project==='atlas') return 'tasks/atlas'; return route;
+}
+function openBeside(route){
+  route=scoped(route,cur());
+  const i=S.panes.indexOf(route); if(i>=0){focusPane(i);toast('Already open — focused');return}
+  if(S.panes.length>=maxPanes()){toast('Max '+maxPanes()+' panes here — opened in place');return navigate(route)}
+  insertPane(route,S.f+1);
+}
+function insertPane(route,at){
+  route=scoped(route,S.panes[Math.max(0,at-1)]);
+  if(S.panes.includes(route)){focusPane(S.panes.indexOf(route));return}
+  if(S.panes.length>=maxPanes()){toast('Max '+maxPanes()+' panes');return}
+  S.panes.splice(at,0,route); S.f=at; S.zoom=-1;
+  if(S.panes.length===3&&S.sb&&!narrow()){S.sb=false;S.sbAuto=true;toast('Sidebar hidden to make room','⌘S')}
+  if(S.pin&&!pinOk()){S.pin=false;toast('Overlay unpinned — not enough room')}
+  render();
+}
+function navigate(route){
+  const i=S.panes.indexOf(route); if(i>=0){focusPane(i);return}
+  if(S.panes.length>1) route=scoped(route,S.panes[S.f===0?1:0]);
+  S.panes[S.f]=route; S.sel=null; S.ans=null; render();
+}
+function closePane(i){
+  if(S.panes.length<2){toast('Last pane — nothing to close');return}
+  S.panes.splice(i,1); S.f=Math.min(S.f>i?S.f-1:S.f,S.panes.length-1); S.zoom=-1;
+  if(S.panes.length<3&&S.sbAuto){S.sb=true;S.sbAuto=false}
+  render();
+}
+function swapPanes(a,b){ if(b<0||b>=S.panes.length||a===b) return; [S.panes[a],S.panes[b]]=[S.panes[b],S.panes[a]]; if(S.f===a)S.f=b; else if(S.f===b)S.f=a; render() }
+function movePane(i,d){ swapPanes(i,i+d) }
+function focusPane(i){ if(i<0||i>=S.panes.length) return; if(S.f!==i){S.f=i;S.sel=null;S.ans=null} render() }
+function toggleOv(t){ if(S.fm) return; if(S.o===t){S.o=null}else{S.o=t} render(); if(S.o==='ask'){/* focus composer (demo: visual only) */} }
+function pinOk(){ if(narrow()) return false; const w=document.getElementById('content').clientWidth-8; const n=S.zoom>=0?1:S.panes.length; return (w-(344+8)-(n-1)*8)/n>=360 }
+function togglePin(){ if(!S.o) S.o='info'; if(!S.pin&&!pinOk()){toast('Close a pane to pin');render();return} S.pin=!S.pin; render() }
+function toggleSb(){ S.sb=!S.sb; S.sbAuto=false; document.body.classList.remove('sb-peek'); render() }
+function toggleFm(){ S.fm=!S.fm; render(); if(S.fm) toast('Focus','⌘⇧S to exit') }
+function toggleTheme(){ S.theme=S.theme==='light'?'dark':'light'; render() }
+function toggleZoom(){ S.zoom=S.zoom>=0?-1:S.f; render() }
+
+/* ---------- render ---------- */
+const $=s=>document.querySelector(s);
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function render(){
+  document.documentElement.dataset.theme=S.theme;
+  const b=document.body;
+  b.classList.toggle('sb-off',!S.sb); b.classList.toggle('fm',S.fm);
+  b.classList.toggle('pinned',!!(S.o&&S.pin&&!S.fm&&!narrow()));
+  renderPills(); renderSidebar(); renderPanes(); renderOverlay(); renderPeek();
+  $('#b-theme').innerHTML=S.theme==='light'?I.moon:I.sun;
+  const m=meta(cur());
+  $('#where').textContent=S.panes.length>1?S.panes.length+' panes · focus: '+m.title:'';
+  $('#b-info-l').textContent=ovLabel(m.type);
+  $('#b-info').classList.toggle('on',S.o==='info'); $('#b-ask').classList.toggle('on',S.o==='ask');
+  const h=toHash(); $('#hash').textContent=h;
+  if(location.hash!==h){writing=true;history.replaceState(null,'',h);writing=false}
+  requestAnimationFrame(layoutNudge);
+}
+function ovLabel(t){return {chat:'In this chat',page:'On this page',tasks:'In this app',crm:'In this app',bot:'About this bot',upnext:'Details'}[t]}
+
+const SCEN=[
+  ['Чат','#/chat/atlas'],
+  ['Чат + Задачи','#/chat/atlas+tasks/atlas?f=2'],
+  ['Поменять местами','#/tasks/atlas+chat/atlas'],
+  ['В этом чате ⌘I','#/chat/atlas+tasks/atlas?o=info'],
+  ['Ask видит обе ⌘J','#/chat/atlas+tasks/atlas?f=1&o=ask'],
+  ['Закреплён ⌘.','#/chat/atlas?o=info&pin=1'],
+  ['Три панели','#/chat/atlas+tasks/atlas+page/launch-plan?f=2'],
+  ['Без сайдбара ⌘S','#/chat/atlas+tasks/atlas?sb=0'],
+  ['Бот: правка, расписание','#/bot/metrics?o=info'],
+  ['Фокус ⌘⇧S','#/chat/atlas?fm=1'],
+];
+function renderPills(){
+  const h=toHash();
+  $('#pills').innerHTML='<span class="brand"><span style="font-weight:800">K</span> kumiya <small>v7 · механика</small></span>'+
+    SCEN.map((s,i)=>`<a class="pill${s[1]===h?' on':''}" href="${s[1]}" style="text-decoration:none"><b>${i+1}</b>${s[0]}</a>`).join('')+
+    '';
+}
+function renderSidebar(){
+  const op=r=>S.panes.includes(r)||S.panes.includes(scoped(r,'chat/atlas'))&&r==='tasks/all';
+  $('#favs').innerHTML=FAVS.map(r=>`<button class="fav${op(r)?' on':''}" draggable="true" data-route="${r}" title="${R[r].title} · ⇧-click: open beside">${I[R[r].icon]}</button>`).join('');
+  const row=(r,cnt)=>{const m=R[r];return `<button class="row${op(r)?' on':''}" draggable="true" data-route="${r}" title="Click: open · ⇧-click or drag to an edge: open beside">${I[m.icon]}<span>${m.title}</span>${cnt?`<span class="cnt">${cnt}</span>`:''}${op(r)&&S.panes.length>1?'<span class="open-dot"></span>':''}<span class="beside" title="Open beside">${I.beside}</span></button>`};
+  $('#sbl').innerHTML=
+    '<div class="grp">Chats</div>'+row('chat/atlas',3)+row('chat/seed')+row('chat/hiring')+row('chat/pricing')+
+    '<div class="grp">Apps</div>'+row('tasks/all',8)+row('crm/pipeline')+
+    '<div class="grp">Files</div>'+row('page/launch-plan')+
+    '<div class="grp">Bots</div>'+row('bot/metrics')+
+    `<div class="sbtip">Drag any row to an edge of the content, or ⇧-click, to open it beside. <span class="kbd">⌘S</span> hides this sidebar.</div>`;
+}
+function paneHeader(r,i){
+  const m=R[r], multi=S.panes.length>1;
+  const avs=m.type==='chat'||m.type==='page'?`<div class="avs"><span class="av ak">AK</span><span class="av ml">ML</span><span class="av sr">SR</span><span class="av am">AM</span></div><button class="addp" title="Add people · ⌘⇧A">${I.plus}</button>`:'';
+  const scope=m.scope?`<span class="scope">Scoped to ${m.scope}<button data-act="unscope" data-i="${i}" title="Show all tasks">${I.x}</button></span>`:'';
+  const status=m.type==='bot'?`<span class="status"><i></i>${S.botSaved?'Scheduled · next Mon 09:00':'Draft schedule'}</span><button class="btn" data-act="ov-info" data-k="⌘I">Edit <span class="kbd">⌘I</span></button>`:'';
+  return `<div class="ph" data-pane="${i}">
+    <div class="crumb" draggable="${multi}" data-drag-pane="${i}" title="${multi?'Drag onto another pane to swap · double-click to zoom':''}">${m.c1?`<span class="c1">${m.c1}</span><span class="c1">›</span>`:''}<span class="c2">${m.title}</span></div>
+    ${scope}<span class="sp"></span>${avs}${status}
+    ${multi?`<button class="pbtn ghost" data-act="zoom" data-i="${i}" title="Zoom pane · ⌘⇧↵">${I.zoom}</button>
+    <button class="pbtn ghost" data-act="swap" data-i="${i}" data-k="⌃⌘${i<S.panes.length-1?'→':'←'}" title="Swap with ${i<S.panes.length-1?'right':'left'} pane · ⌃⌘${i<S.panes.length-1?'→':'←'}">${I.swap}</button>
+    <button class="pbtn ghost" data-act="close" data-i="${i}" data-k="⌥W" title="Close pane · ⌘W (web ⌥W)">${I.x}</button>`:''}
+  </div>`;
+}
+function footer(t){
+  const F={
+    chat:`<span class="opt"><span class="kbd">⇧</span>-click to open beside</span><span><span class="kbd">⌘\\</span> Open beside…</span><span class="opt"><span class="kbd">⌘I</span> In this chat</span><span class="sp"></span><button class="agent" data-act="ov-ask"><b class="k" style="width:18px;height:18px;border-radius:5px;display:grid;place-items:center;font-size:11px">K</b>Reply with kumiya <span class="kbd">⌘J</span></button>`,
+    tasks:`<span><span class="kbd">Click</span> to preview</span><span class="opt"><span class="kbd">⌃⌘←</span> move pane</span><span class="sp"></span><button class="agent" data-act="ov-ask"><b class="k" style="width:18px;height:18px;border-radius:5px;display:grid;place-items:center;font-size:11px">K</b>Plan the week <span class="kbd">⌘J</span></button>`,
+    page:`<span><span class="kbd">⌘I</span> On this page</span><span class="sp"></span><button class="agent" data-act="ov-ask"><b class="k" style="width:18px;height:18px;border-radius:5px;display:grid;place-items:center;font-size:11px">K</b>Ask about this page <span class="kbd">⌘J</span></button>`,
+    crm:`<span><span class="kbd">Click</span> to preview</span><span class="sp"></span><button class="agent" data-act="ov-ask"><b class="k" style="width:18px;height:18px;border-radius:5px;display:grid;place-items:center;font-size:11px">K</b>Forecast <span class="kbd">⌘J</span></button>`,
+    bot:`<span><span class="kbd">⌘I</span> Edit bot</span><span class="sp"></span>`,
+    upnext:`<span><span class="kbd">⇧</span>-click to open beside</span><span class="sp"></span>`,
+  };
+  return `<div class="pf">${F[t]}</div>`;
+}
+function body(r,inPeek){
+  const m=R[r];
+  if(m.type==='chat') return chatBody(r);
+  if(m.type==='tasks') return tasksBody(r);
+  if(m.type==='page') return pageBody();
+  if(m.type==='crm') return crmBody();
+  if(m.type==='bot') return botBody();
+  return upnextBody();
+}
+function chatBody(r){
+  if(r!=='chat/atlas'){
+    const m=R[r];
+    return `<div class="chatwrap"><div class="msgs"><div class="col">
+      <div class="msg"><div class="who av ak" style="border-radius:8px;width:28px;height:28px;margin:0">AK</div><div><div class="meta"><b>Anna Kim</b>10:12</div><p>${r==='chat/seed'?'Juniper wants the data room by Friday. kumiya, can you pull the Q3 metrics into the deck?':r==='chat/hiring'?'Three portfolio reviews this week — Sofia, can you take Thursday?':'Only you see this chat. Notes on usage-based pricing.'}</p></div></div>
+      <div class="msg"><div class="who k">K</div><div><div class="meta"><b>kumiya</b>for Anna · 10:13</div><p>${r==='chat/seed'?'Drafted 4 slides from Stripe and HubSpot. The churn number needs Mark’s sign-off.':'Sample reply — prototype only.'}</p></div></div>
+    </div></div>${composer(m)}</div>`;
+  }
+  return `<div class="chatwrap"><div class="msgs"><div class="col">
+    <div class="msg"><div class="who k">K</div><div style="min-width:0">
+      <div class="meta"><b>kumiya</b>for Anna · 14:06</div>
+      <div class="run">› Completed in 4m 12s · Researcher ran 3 subagents</div>
+      <p>Done. I created the <b>Launch plan</b> in Atlas launch with a checklist and a 5-step timeline. Owners are suggested from Tasks; nothing is assigned until you confirm.</p>
+      <div class="chips">
+        <button class="chip" draggable="true" data-route="page/launch-plan" data-peek="page/launch-plan" title="Click: peek · ⇧-click: open beside"><span class="ic">${I.page}</span><span><b>Launch plan</b><small>Page · Atlas launch</small></span><span class="hint">⇧ beside</span></button>
+        <button class="chip" draggable="true" data-route="tasks/all" data-peek="tasks/atlas" data-k="⇧↵" title="Click: peek · ⇧-click: open beside"><span class="ic">${I.tasks}</span><span><b>Tasks · Atlas launch</b><small>App · 7 open</small></span><span class="hint">⇧ beside</span></button>
+      </div>
+    </div></div>
+    <div class="msg"><div class="who av ml" style="border-radius:8px;width:28px;height:28px;margin:0">ML</div><div><div class="meta"><b>Mark Lee</b>14:09</div><p>Looks right. @Support bot draft the FAQ for the new sharing model and stage it in Intercom — I’ll approve before anything goes public.</p></div></div>
+    <div class="msg"><div class="who" style="background:var(--sheet-2);color:var(--t2)">${I.bot}</div><div style="flex:1;min-width:0">
+      <div class="meta"><b>Support bot</b>for Mark · 14:10</div>
+      <div class="approve"><b>Publish 12 articles to the Intercom help center?</b><div class="mut" style="font-size:12.5px">Customers will see them. Drafts are in Support ops › FAQ drafts.</div>
+      <div class="acts"><button class="btn pri">Approve <span class="kbd">↵</span></button><button class="btn">Review drafts</button><span class="mut" style="margin-left:auto;font-size:12px">Mark or an admin</span></div></div>
+    </div></div>
+  </div></div>${composer(R[r])}</div>`;
+}
+function composer(m){
+  return `<div class="composer"><div class="ph2">Message ${m.c1} and kumiya — @ people and agents</div><div class="bar">${I.plus}<span>${m.c1==='Personal'?'Only you':'3 people and 3 agents see this'}</span><span class="sp"></span><span>Auto · Claude Team</span><span class="send">↑</span></div></div>`;
+}
+function tasksBody(r){
+  const sc=R[r].scope; const list=TASKS.filter(t=>!sc||t.p==='atlas');
+  const card=t=>`<button class="card${t.s==='Done'?' done':''}${S.sel===t.id?' sel':''}${t.isNew?' new':''}" data-task="${t.id}"><div class="t">${esc(t.t)}</div><div class="m"><span class="tag ${t.cls||''}"><i></i>${t.tag}</span><span style="${t.due==='Today'?'color:var(--red)':''}">${t.due}</span><span class="sp"></span>${t.who==='k'?'<span class="kmark">K</span>':`<span class="av ${t.who}" style="margin:0;border:0">${t.who.toUpperCase()}</span>`}</div></button>`;
+  const row=t=>`<button class="card${t.s==='Done'?' done':''}${S.sel===t.id?' sel':''}${t.isNew?' new':''}" data-task="${t.id}"><span class="cb"></span><span class="t">${esc(t.t)}</span><span class="mut" style="font-size:12px;${t.due==='Today'?'color:var(--red)':''}">${t.due}</span>${t.who==='k'?'<span class="kmark">K</span>':`<span class="av ${t.who}" style="margin:0;border:0">${t.who.toUpperCase()}</span>`}</button>`;
+  return `<div class="board">${STAGES.map(s=>{const l=list.filter(t=>t.s===s);return `<div class="colm"><h4>${s}<span>${l.length}</span></h4>${l.map(card).join('')}</div>`}).join('')}</div>
+    <div class="tlist">${STAGES.map(s=>{const l=list.filter(t=>t.s===s);return l.length?`<h4>${s} · ${l.length}</h4>${l.map(row).join('')}`:''}).join('')}</div>`;
+}
+function pageBody(){
+  return `<div class="col page"><h1>Launch plan</h1><div class="pm">Last edited by Anna · <span class="kmark">K</span> kumiya · Atlas launch · 6 people</div>
+  <p>Atlas v2 ships on Tuesday, Nov 17. This page is the source of truth for dates, owners and open risks. Client contact is Tom Chen at Atlas Studio.</p>
+  <div class="callout"><span class="kmark">K</span><span>Launch date moved from Nov 10 to Nov 17 after Anna’s message on Nov 2.</span></div>
+  <h3>Checklist</h3>
+  <div class="ck"><span class="cb" style="background:var(--accent);border-color:var(--accent)"></span><s class="mut">Lock the press kit with Tom</s></div>
+  <div class="ck"><span class="cb"></span>Update the pricing page for Atlas v2</div>
+  <div class="ck"><span class="cb"></span>Approve the 12 FAQ articles before they go public</div>
+  <div class="ck"><span class="cb"></span>Dry run of the announcement email</div></div>`;
+}
+function crmBody(){
+  const D=[['Kestrel Health','Negotiation','$48,000'],['Juniper Health','Proposal','$22,000'],['Harbor & Finch','Qualified','$18,000'],['Brightline Ed','Proposal','$12,400'],['Plover Systems','Lead','$9,600'],['Moss Analytics','Lead','$6,000']];
+  return `<div class="col" style="max-width:none"><div style="font-size:20px;font-weight:650;margin:4px 0 12px">$116,000 <span class="mut" style="font-size:13px;font-weight:500">open in 6 deals</span></div>${D.map(d=>`<div class="deal"><b>${d[0]}</b><span class="tag">${d[1]}</span><span class="v">${d[2]}</span></div>`).join('')}</div>`;
+}
+function botBody(){
+  return `<div class="chatwrap"><div class="msgs"><div class="col">
+    <div class="msg"><div class="who av am" style="border-radius:8px;width:28px;height:28px;margin:0">AM</div><div><div class="meta"><b>You</b>09:41</div><p>every Monday 9:00 send the metrics digest to #leadership</p></div></div>
+    <div class="msg"><div class="who" style="background:var(--accent-soft);color:var(--accent-ink)">${I.bot}</div><div style="flex:1;min-width:0">
+      <div class="meta"><b>Metrics bot</b>09:41</div><p>Here’s the schedule I understood. Check it and save.</p>
+      <div class="sched"><div class="line">Every <span class="tok">Mon</span> at <span class="tok">09:00</span> <span class="tok">CET</span></div>
+        <dl><dt>Does</dt><dd>Metrics digest: MRR, churn, pipeline</dd><dt>Delivers to</dt><dd>#leadership in Slack · this chat</dd><dt>Uses</dt><dd>Stripe (read) · HubSpot (read)</dd><dt>Next runs</dt><dd>Nov 9 · Nov 16 · Nov 23</dd></dl>
+        <div style="display:flex;gap:8px">${S.botSaved?'<span class="status"><i></i>Saved</span>':'<button class="btn pri" data-act="botsave">Save schedule <span class="kbd">↵</span></button>'}<button class="btn" data-act="bottest">Run now as test</button><button class="btn" data-act="ov-info">Edit</button></div></div>
+    </div></div>
+    ${S.botTest?`<div class="msg"><div class="who" style="background:var(--accent-soft);color:var(--accent-ink)">${I.bot}</div><div><div class="meta"><b>Metrics bot</b>09:42 · <span class="sample">Test · not delivered</span></div><p>MRR $84.2k (+3.1%) · churn 1.4% · pipeline $116k in 6 deals.</p></div></div>`:''}
+    <div class="msg"><div class="who av am" style="border-radius:8px;width:28px;height:28px;margin:0">AM</div><div><div class="meta"><b>You</b>09:43</div><p>shorter please, no emojis</p></div></div>
+    <div class="msg"><div class="who" style="background:var(--accent-soft);color:var(--accent-ink)">${I.bot}</div><div><div class="meta"><b>Metrics bot</b>09:43</div><p>Got it — three lines, no emojis.</p><div class="chips"><button class="btn" data-act="ov-info">Save to instructions?</button></div></div></div>
+  </div></div><div class="composer"><div class="ph2">Message Metrics bot</div><div class="bar">${I.plus}<span>Only you and Metrics bot</span><span class="sp"></span><span>Auto · Claude Team</span><span class="send">↑</span></div></div></div>`;
+}
+function upnextBody(){
+  return `<div class="col"><h2 style="margin:6px 0 12px">Up next</h2>${['Publish 12 FAQ articles · Support bot','Tom Chen asks to edit Launch plan','Anna mentioned you in Launch plan'].map(x=>`<div class="deal"><b>${x}</b></div>`).join('')}</div>`;
+}
+function renderPanes(){
+  const P=$('#panes'); P.classList.toggle('multi',S.panes.length>1);
+  P.innerHTML=S.panes.map((r,i)=>`<section class="pane${i===S.f?' focus':''}${S.zoom>=0&&S.zoom!==i?' zoomed-out':''}" data-pane="${i}">${paneHeader(r,i)}<div class="pb">${body(r)}</div>${footer(R[r].type)}</section>`).join('');
+  const sw=$('#switcher'); sw.classList.toggle('none',S.panes.length<2);
+  sw.innerHTML=S.panes.map((r,i)=>`<button class="${i===S.f?'on':''}" data-focus="${i}">${R[r].title}</button>`).join('')+(S.panes.length<3?`<button data-act="cmdb" title="Add to split">+</button>`:'');
+}
+/* reading column re-centres beside a floating overlay; boards get scroll padding */
+function layoutNudge(){
+  document.querySelectorAll('.pane').forEach(p=>{p.classList.remove('nudge','cover');p.style.removeProperty('--nudge')});
+  if(!S.o||S.pin||S.fm||narrow()) return;
+  const ov=$('#ov').getBoundingClientRect();
+  document.querySelectorAll('.pane').forEach(p=>{
+    const r=p.getBoundingClientRect(); if(r.right<=ov.left||r.width===0) return;
+    const col=p.querySelector('.col');
+    if(p.querySelector('.board')||!col){p.classList.add('cover');return}
+    const free=ov.left-r.left-16, cw=Math.min(700,r.width);
+    const colRight=r.left+(r.width+cw)/2;
+    if(colRight<=ov.left-8) return;
+    if(free>=560){p.classList.add('nudge');p.style.setProperty('--nudge',Math.max(0,Math.round(colRight-(r.left+free)+8)));}
+  });
+}
+
+/* ---------- overlay ---------- */
+function renderOverlay(){
+  const ov=$('#ov'); ov.classList.toggle('open',!!S.o&&!S.fm);
+  if(!S.o){ov.innerHTML='';return}
+  const r=cur(), m=R[r];
+  const pinDis=!S.pin&&!pinOk();
+  ov.innerHTML=`<div class="oh"><div class="tabs"><button class="tab${S.o==='info'?' on':''}" data-act="tab-info">${ovLabel(m.type)} <span class="kbd">⌘I</span></button><button class="tab${S.o==='ask'?' on':''}" data-act="tab-ask">Ask kumiya <span class="kbd">⌘J</span></button></div>
+    <button class="pbtn ov-pin${S.pin?' on':''}" data-act="pin" data-k="⌘." ${pinDis?'disabled title="Close a pane to pin"':`title="${S.pin?'Unpin':'Pin'} · ⌘."`}>${I.pin}</button>
+    <button class="pbtn" data-act="ovclose" data-k="Esc" title="Close · Esc">${I.x}</button></div>
+    <div class="octx">${I[m.icon]}<b>${m.title}</b>${S.panes.length>1?`<span>· pane ${S.f+1} of ${S.panes.length}</span>`:''}</div>
+    <div class="ob">${S.o==='info'?info(r):ask(r)}</div>
+    ${S.o==='ask'?`<div class="ocomp"><div class="ph2">Ask about ${S.panes.filter(p=>!S.askOff[p]).length>1?'these panes':m.title}…</div><div class="bar"><span>@ add context</span><span style="margin-left:auto">Auto · Claude Team</span><span class="send" style="width:22px;height:22px">↑</span></div></div>`:''}`;
+}
+const besideBtn=(route,label='Open beside')=>{const s=scoped(route,cur());const open=S.panes.includes(s);return `<button class="obeside${open?' is-open':''}" data-beside="${route}" title="⇧↵">${open?'Open ✓':I.beside+label}</button>`};
+function info(r){
+  const t=R[r].type;
+  if(t==='chat') return `
+    <div class="sec"><h5>People <button>+ Add</button></h5>
+      ${[['ak','Anna Kim','Owner'],['ml','Mark Lee','Can edit'],['sr','Sofia Rossi','<i>typing…</i>'],['am','You','']].map(p=>`<div class="orow"><span class="av ${p[0]}" style="margin:0;border:0">${p[0].toUpperCase()}</span>${p[1]}<span class="r">${p[2]}</span></div>`).join('')}</div>
+    <div class="sec"><h5>Agents & subagents</h5>
+      <div class="orow"><span class="ic k" style="font-size:12px!important">K</span>kumiya<span class="r ok">✓</span></div>
+      <div class="orow"><span class="ic">${I.agent}</span>Researcher<span class="r">4m 12s</span></div>
+      <div class="orow"><span class="ic">${I.bot}</span>Support bot<span class="r wait">Waiting for you</span></div></div>
+    <div class="sec"><h5>Files & apps</h5>
+      <div class="orow"><span class="ic">${I.page}</span>Launch plan${besideBtn('page/launch-plan')}</div>
+      <div class="orow"><span class="ic">${I.tasks}</span>Tasks · Atlas launch${besideBtn('tasks/all')}</div>
+      <div class="orow"><span class="ic">${I.crm}</span>CRM · Kestrel Health${besideBtn('crm/pipeline')}</div></div>
+    <div class="sec"><h5>What was done</h5>
+      <div class="done-row"><i class="dot" style="background:var(--green)"></i><span><b>Launch plan and timeline created</b><small>kumiya for Anna · 14:06</small></span></div>
+      <div class="done-row"><i class="dot" style="background:var(--amber)"></i><span><b>Waiting to publish to Intercom</b><small>Needs Mark or an admin</small></span></div></div>
+    <div class="sec"><h5>Details <span class="mut2" style="font-weight:500">Model · who pays · memory ›</span></h5></div>`;
+  if(t==='tasks'){
+    const tk=TASKS.find(x=>x.id===S.sel);
+    if(tk) return `<div class="sec"><h5>Selected task</h5><div style="font-size:16px;font-weight:600;margin:2px 0 10px">${esc(tk.t)}</div>
+      <div class="orow">Status<span class="r">${tk.s}</span></div><div class="orow">Owner<span class="r">${tk.who==='k'?'Support bot':tk.who.toUpperCase()}</span></div><div class="orow">Due<span class="r">${tk.due}</span></div></div>
+      <div class="sec"><h5>From</h5><div class="orow"><span class="ic">${I.chat}</span>Atlas v2 launch plan${besideBtn('chat/atlas')}</div></div>`;
+    return `<div class="sec"><h5>Who can use this app <button>+ Add</button></h5><div class="orow"><div class="avs"><span class="av ak">AK</span><span class="av ml">ML</span><span class="av sr">SR</span><span class="av am">AM</span><span class="av dp">DP</span></div><span class="r">Atlas launch · 6</span></div></div>
+      <div class="sec"><h5>Views</h5><div class="orow">Board<span class="r">wide panes</span></div><div class="orow">List<span class="r">narrow panes (auto)</span></div></div>
+      <div class="sec"><h5>Linked chat</h5><div class="orow"><span class="ic">${I.chat}</span>Atlas v2 launch plan${besideBtn('chat/atlas')}</div></div>
+      <div class="sec mut" style="font-size:12.5px">Click a task to preview it here.</div>`;
+  }
+  if(t==='page') return `<div class="sec"><h5>Access <button>+ Add</button></h5><div class="orow"><span class="ic" style="font-weight:650">A</span>Inherited from Atlas launch<span class="r">6 people</span></div></div>
+      <div class="sec"><h5>Linked chats</h5><div class="orow"><span class="ic">${I.chat}</span>Atlas v2 launch plan${besideBtn('chat/atlas')}</div></div>
+      <div class="sec"><h5>Agent edits</h5><div class="orow"><span class="kmark">K</span>Launch date callout<span class="r">Nov 2</span></div><div class="orow"><span class="kmark">K</span>Checklist item 3<span class="r">Nov 3</span></div></div>`;
+  if(t==='crm') return `<div class="sec"><h5>Who can use this app <button>+ Add</button></h5><div class="orow"><span class="r" style="margin:0">Sales · 4 people · Lead qualifier bot</span></div></div><div class="sec"><h5>Built from</h5><div class="orow"><span class="ic">${I.chat}</span>Seed extension${besideBtn('chat/seed')}</div></div>`;
+  if(t==='bot') return `<div class="sec"><h5>Edit Metrics bot <span class="mut2" style="font-weight:500">${S.botEdited?'Draft · Publish':'Team bot'}</span></h5>
+      <textarea class="ta" data-act="botedit">Every week, summarise MRR, churn and pipeline for the leadership team. ${S.botTone==='Brief'?'Three lines max. No emojis.':''}</textarea>
+      <div style="margin:10px 0 4px;font-size:12px;color:var(--t3);font-weight:600">Tone</div>
+      <div class="tone">${['Plain','Friendly','Formal','Brief'].map(x=>`<button class="${S.botTone===x?'on':''}" data-tone="${x}">${x}</button>`).join('')}</div></div>
+    <div class="sec"><h5>Can touch</h5>${[['Stripe','Read',1],['HubSpot','Read',1],['Slack · #leadership','Post',1],['Gmail','Send',0]].map(c=>`<div class="orow">${c[0]}<span class="r">${c[1]}</span><span class="tg${c[2]?' on':''}" data-tg style="margin-left:12px"></span></div>`).join('')}</div>
+    <div class="sec"><h5>Schedules <button>+ Add</button></h5><div class="orow">${I.up}<span>Mon 09:00 · Metrics digest</span><span class="tg${S.botSaved?' on':''}" data-act="botsave"></span></div></div>
+    <div class="sec"><h5>Asks before</h5><div class="orow">Posting outside #leadership<span class="tg on" data-tg></span></div></div>`;
+  return `<div class="sec mut">Nothing here yet.</div>`;
+}
+const SUG={
+  chat:[['Turn this into tasks','Adds open items to Tasks with owners'],['Catch me up','Five lines since you were last here'],['Draft the reply to Mark','Uses the launch plan']],
+  tasks:[['Plan the week','Who does what by Friday'],['Who is overloaded?','Open tasks per person']],
+  page:[['Summarize this page','Five lines for someone joining today'],['Turn the checklist into tasks','Adds open items with owners']],
+  crm:[['Forecast this month','Weighted by stage']],bot:[['Run now as test','Not delivered'],['Change the schedule','e.g. also Thursday']],upnext:[['Plan my day','From everything above']],
+};
+function ask(r){
+  const t=R[r].type;
+  return `<div style="font-size:12px;color:var(--t3);font-weight:600;margin:6px 0 2px">Looking at</div>
+    <div class="ctxchips">${S.panes.map(p=>`<button class="cchip ${S.askOff[p]?'off':'on'}" data-ctx="${p}" title="Click to ${S.askOff[p]?'include':'exclude'}">${I[R[p].icon]}${R[p].title}</button>`).join('')}</div>
+    ${S.ans?`<div class="ans"><span class="sample">Sample</span>${S.ans}</div>`:''}
+    <div style="font-size:15px;font-weight:600;margin:10px 0 8px">What should I do with this?</div>
+    ${SUG[t].map(s=>`<button class="sug" data-sug="${s[0]}"><b>${s[0]}</b><small>${s[1]}</small></button>`).join('')}`;
+}
+function runSug(s){
+  const visTasks=S.panes.find(p=>R[p].type==='tasks'&&!S.askOff[p]);
+  if(s==='Turn this into tasks'||s==='Turn the checklist into tasks'){
+    if(visTasks){
+      if(!TASKS.some(t=>t.id===9)){TASKS.unshift({id:9,t:'Draft the launch email',s:'To do',p:'atlas',tag:'Atlas',due:'Nov 9',who:'k',isNew:1},{id:10,t:'Summarize the plan for Tom',s:'To do',p:'atlas',tag:'Atlas',due:'Nov 8',who:'ak',isNew:1})}
+      S.ans='Added 2 tasks to <b>Tasks › Atlas launch</b> in the pane beside — owners suggested, not assigned.';
+    } else S.ans=`I’d add 2 tasks to Tasks › Atlas launch. ${besideBtn('tasks/all','Open Tasks beside')}`;
+  } else if(s==='Run now as test'){S.botTest=1;S.ans='Ran once. Output is in the chat, marked “Test · not delivered”.'}
+  else S.ans='Pre-scripted sample reply for “'+esc(s)+'”. Reads: '+S.panes.filter(p=>!S.askOff[p]).map(p=>R[p].title).join(' + ')+'.';
+  render(); setTimeout(()=>TASKS.forEach(t=>delete t.isNew),1700);
+}
+
+/* ---------- peek ---------- */
+function renderPeek(){
+  const pk=$('#peek'), sc=$('#scrim');
+  pk.classList.toggle('on',!!S.peek); sc.classList.toggle('on',!!S.peek);
+  if(!S.peek){pk.innerHTML='';return}
+  const m=R[S.peek];
+  pk.innerHTML=`<div class="ph" style="border-bottom:1px solid var(--line)"><span style="color:var(--t3)">Peek</span><span class="c2" style="font-weight:600">${m.title}</span><span class="sp" style="flex:1"></span>
+    <button class="btn pri" data-act="peekbeside">${I.beside} Open beside <span class="kbd">⇧↵</span></button><button class="btn" data-act="peekfull">Open full <span class="kbd">↵</span></button><button class="pbtn" data-act="peekclose" title="Esc">${I.x}</button></div>
+    <div class="pb">${body(S.peek)}</div>`;
+}
+
+/* ---------- command bar + ⌘/ sheet ---------- */
+let CMD={mode:'here',q:'',i:0};
+function cmdItems(){
+  const q=CMD.q.toLowerCase();
+  const acts=[['Toggle sidebar','mod+s',toggleSb],['Theme: '+(S.theme==='light'?'Dark':'Light'),'mod+shift+l',toggleTheme],['Focus mode','mod+shift+s',toggleFm],['Ask kumiya','mod+j',()=>toggleOv('ask')]];
+  const it=[...Object.keys(R).filter(r=>r!=='tasks/atlas').map(r=>({r,label:R[r].title,sub:R[r].c1||({tasks:'App',crm:'App'}[R[r].type]||''),icon:I[R[r].icon],g:{chat:'Chats',page:'Pages & files',tasks:'Apps',crm:'Apps',bot:'Bots',upnext:'Places'}[R[r].type]})),
+    ...acts.map(a=>({act:a[2],label:a[0],k:a[1],icon:'<span style="width:16px;text-align:center">›</span>',g:'Actions'}))];
+  const f=it.filter(x=>!q||x.label.toLowerCase().includes(q)||(x.sub||'').toLowerCase().includes(q));
+  if(q) f.push({ask:CMD.q,label:'Ask kumiya: “'+CMD.q+'”',icon:'<b class="k" style="width:16px;height:16px;border-radius:4px;display:grid;place-items:center;font-size:10px">K</b>',g:'Ask'});
+  return f;
+}
+function openCmd(mode){document.body.classList.add('dim');CMD={mode,q:'',i:0};$('#cmd').classList.add('on');renderCmd();$('#cmd input').focus()}
+function closeCmd(){$('#cmd').classList.remove('on');syncDim()}
+function syncDim(){document.body.classList.toggle('dim',$('#cmd').classList.contains('on')||$('#sheet').classList.contains('on'))}
+function renderCmd(){
+  const items=cmdItems(); CMD.i=Math.min(CMD.i,Math.max(0,items.length-1));
+  let g='',html='';
+  items.forEach((x,i)=>{if(x.g!==g){g=x.g;html+=`<div class="cgrp">${g}</div>`}
+    html+=`<div class="ci${i===CMD.i?' on':''}" data-ci="${i}"><span class="ic">${x.icon}</span><span>${esc(x.label)}</span><span class="sub">${x.sub||''}</span><span class="r">${x.k?`<span class="kbd">${fk(x.k)}</span>`:x.r&&S.panes.includes(scoped(x.r,cur()))?'<span class="sub">open</span>':''}</span></div>`});
+  const box=$('#cmd'); const had=box.querySelector('input');
+  if(!had){box.innerHTML=`<div id="cmode"></div><input placeholder="Search chats, pages, apps, people — or ask kumiya" autocomplete="off"><div class="cl"></div><div class="cfoot"><span><span class="kbd">↵</span> open</span><span><span class="kbd">⇧↵</span> open beside</span><span><span class="kbd">⌘↵</span> new tab</span><span><span class="kbd">⌥↵</span> ask kumiya</span><span style="margin-left:auto"><span class="kbd">Esc</span></span></div>`;
+    box.querySelector('input').addEventListener('input',e=>{CMD.q=e.target.value;CMD.i=0;renderCmd()})}
+  box.querySelector('#cmode').innerHTML=CMD.mode==='beside'?'<span class="modechip">Open beside · ⌘\\</span>':'';
+  box.querySelector('.cl').innerHTML=html;
+  if(!had) box.querySelector('input').value='';
+}
+function runCmd(i,shift){
+  const x=cmdItems()[i]; if(!x) return; closeCmd();
+  if(x.act) return x.act();
+  if(x.ask){S.o='ask';S.ans='Pre-scripted sample answer to “'+esc(x.ask)+'”.';return render()}
+  if(shift||CMD.mode==='beside') openBeside(x.r); else navigate(x.r);
+}
+function toggleSheet(){
+  const sh=$('#sheet'); if(sh.classList.contains('on')){sh.classList.remove('on');syncDim();return}
+  const t=R[cur()].type; const groups={};
+  KEYS.forEach((k,i)=>{(groups[k.g]=groups[k.g]||[]).push(`<div class="ci" data-key="${i}"><span>${k.l}</span><span class="r"><span class="kbd">${fk(k.k)}</span></span></div>`)});
+  const view=(VIEWKEYS[t]||[]).map(v=>`<div class="ci"><span>${v[1]}</span><span class="r"><span class="kbd">${v[0]}</span></span></div>`).join('');
+  sh.innerHTML=`<input placeholder="Filter shortcuts…" autocomplete="off"><div class="sh-cols"><div><div class="cgrp">This view · ${R[cur()].title}</div>${view}<div class="cgrp">Panes</div>${groups['Panes'].join('')}</div><div><div class="cgrp">Overlay & bar</div>${groups['Overlay & bar'].join('')}<div class="cgrp">App</div>${groups['App'].join('')}</div></div><div class="cfoot"><span>Click a row to run it</span><span>⌘ = Ctrl on Windows/Linux · only wired keys are listed</span><span style="margin-left:auto"><span class="kbd">Esc</span></span></div>`;
+  sh.classList.add('on'); syncDim(); const inp=sh.querySelector('input'); inp.focus();
+  inp.addEventListener('input',()=>{const q=inp.value.toLowerCase();sh.querySelectorAll('.ci').forEach(c=>c.style.display=c.textContent.toLowerCase().includes(q)?'':'none')});
+}
+
+/* ---------- toast ---------- */
+let tt; function toast(msg,k){const t=$('#toast');t.innerHTML=esc(msg)+(k?` <span class="kbd">${k}</span>`:'');t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2200)}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act],[data-route],[data-beside],[data-task],[data-ctx],[data-sug],[data-focus],[data-ci],[data-key],[data-tone],[data-tg],.pane,#scrim');
+  if(!el) return;
+  if(el.id==='scrim'){S.peek=null;return render()}
+  const d=el.dataset;
+  if(d.act){
+    const a=d.act, i=+d.i;
+    if(a==='botedit') return;
+    e.stopPropagation();
+    ({sb:toggleSb,'ov-info':()=>toggleOv('info'),'ov-ask':()=>{if(S.o!=='ask'){S.o='ask';render()}else toggleOv('ask')},theme:toggleTheme,sheet:toggleSheet,cmd:()=>openCmd('here'),cmdb:()=>openCmd('beside'),
+      'tab-info':()=>{S.o='info';render()},'tab-ask':()=>{S.o='ask';render()},pin:togglePin,ovclose:()=>{S.o=null;S.pin=false;render()},
+      swap:()=>swapPanes(i,i<S.panes.length-1?i+1:i-1),close:()=>closePane(i),zoom:()=>{S.f=i;toggleZoom()},
+      unscope:()=>{S.panes[i]='tasks/all';render()},
+      peekbeside:()=>{const r=S.peek;S.peek=null;openBeside(r)},peekfull:()=>{const r=S.peek;S.peek=null;navigate(r)},peekclose:()=>{S.peek=null;render()},
+      botsave:()=>{S.botSaved=!S.botSaved;render();toast(S.botSaved?'Schedule saved · next run Mon 09:00':'Schedule paused')},
+      bottest:()=>{S.botTest=1;render()}})[a]?.();
+    return;
+  }
+  if(d.beside!==undefined&&d.beside){e.stopPropagation();return openBeside(d.beside)}
+  if(d.peek&&!e.shiftKey){e.stopPropagation();S.peek=d.peek;return render()}
+  if(d.route){e.stopPropagation();if(e.shiftKey||e.target.closest('.beside')) openBeside(d.route); else navigate(d.route);document.body.classList.remove('sb-peek');return}
+  if(d.task){e.stopPropagation();const pi=+el.closest('.pane')?.dataset.pane;if(!isNaN(pi))S.f=pi;S.sel=+d.task;if(!S.o)S.o='info';return render()}
+  if(d.ctx){S.askOff[d.ctx]=!S.askOff[d.ctx];return render()}
+  if(d.sug){return runSug(d.sug)}
+  if(d.focus!==undefined){return focusPane(+d.focus)}
+  if(d.ci!==undefined){return runCmd(+d.ci,e.shiftKey)}
+  if(d.key!==undefined){$('#sheet').classList.remove('on');syncDim();return KEYS[+d.key].run()}
+  if(d.tone){S.botTone=d.tone;S.botEdited=1;return render()}
+  if(d.tg!==undefined){el.classList.toggle('on');S.botEdited=1;return}
+  if(el.classList.contains('pane')){const i=+el.dataset.pane;if(i!==S.f)focusPane(i)}
+});
+document.addEventListener('mousedown',e=>{ // click outside an unpinned overlay closes it
+  if(!S.o||S.pin||S.panes.length>1) return; // in a split, clicking another pane moves the overlay to it
+  if(e.target.closest('#ov,#strip,[data-beside],[data-task],[data-act],#cmd,#sheet,[data-sug]')) return;
+  if(e.target.closest('#panes')){S.o=null;render()}
+});
+document.addEventListener('contextmenu',e=>{if(e.target.closest('#b-theme')){e.preventDefault();S.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';render();toast('Theme matches system')}});
+$('#body').addEventListener('dblclick',e=>{const c=e.target.closest('.crumb');if(c&&S.panes.length>1){S.f=+c.closest('.ph').dataset.pane;toggleZoom()}});
+
+/* sidebar peek from the left edge */
+let peekT;
+$('#edge').addEventListener('mouseenter',()=>{clearTimeout(peekT);document.body.classList.add('sb-peek')});
+$('#sb').addEventListener('mouseleave',()=>{if(!S.sb){peekT=setTimeout(()=>document.body.classList.remove('sb-peek'),300)}});
+$('#sb').addEventListener('mouseenter',()=>clearTimeout(peekT));
+
+/* drag: sidebar rows / chips → edges (insert) or pane middle (open here); pane header → other pane (swap) */
+let DRAG=null;
+document.addEventListener('dragstart',e=>{
+  const p=e.target.closest('[data-drag-pane]'); const r=e.target.closest('[data-route]');
+  if(p) DRAG={pane:+p.dataset.dragPane}; else if(r) DRAG={route:r.dataset.route}; else return;
+  e.dataTransfer.setData('text/plain','kumiya'); e.dataTransfer.effectAllowed='move';
+  if(r&&!S.sb) setTimeout(()=>document.body.classList.remove('sb-peek'),50);
+});
+document.addEventListener('dragend',()=>{DRAG=null;$('#drop').style.display='none'});
+function dropTarget(x){
+  const panes=[...document.querySelectorAll('.pane')].filter(p=>p.offsetWidth); const c=$('#content').getBoundingClientRect();
+  const rs=panes.map(p=>p.getBoundingClientRect()); const n=rs.length; const Z=70;
+  if(DRAG.pane!=null){const j=rs.findIndex(r=>x>=r.left&&x<=r.right); if(j<0||j===DRAG.pane) return null; return {kind:'swap',j,rect:rs[j]}}
+  if(n<maxPanes()){
+    const bs=[rs[0].left,...rs.slice(0,-1).map((r,i)=>(r.right+rs[i+1].left)/2),rs[n-1].right];
+    for(let i=0;i<bs.length;i++) if(Math.abs(x-bs[i])<Z){
+      const w=Math.min(260,(rs[0].width)*.42); const left=i===0?rs[0].left:i===n?rs[n-1].right-w:bs[i]-w/2;
+      return {kind:'insert',i,rect:{left,top:rs[0].top,width:w,height:rs[0].height}};
+    }
+  }
+  const j=rs.findIndex(r=>x>=r.left&&x<=r.right); if(j<0) return null;
+  return {kind:'here',j,rect:rs[j]};
+}
+$('#content').addEventListener('dragover',e=>{
+  if(!DRAG) return; e.preventDefault();
+  const t=dropTarget(e.clientX), d=$('#drop'); if(!t){d.style.display='none';return}
+  const c=$('#content').getBoundingClientRect();
+  Object.assign(d.style,{display:'grid',left:(t.rect.left-c.left)+'px',top:(t.rect.top-c.top)+'px',width:t.rect.width+'px',height:t.rect.height+'px'});
+  d.firstElementChild.textContent=t.kind==='insert'?'Open beside':t.kind==='swap'?'Swap panes':'Open here';
+});
+$('#content').addEventListener('drop',e=>{
+  if(!DRAG) return; e.preventDefault(); const t=dropTarget(e.clientX); $('#drop').style.display='none';
+  const D=DRAG; DRAG=null; if(!t) return;
+  if(t.kind==='swap') return swapPanes(D.pane,t.j);
+  if(t.kind==='insert') return insertPane(D.route,t.i);
+  S.f=t.j; navigate(D.route);
+});
+
+/* keyboard */
+let holdT;
+document.addEventListener('keydown',e=>{
+  if(e.key==='Meta'||e.key==='Control'){clearTimeout(holdT);holdT=setTimeout(()=>document.body.classList.add('showkeys'),500);return}
+  clearTimeout(holdT); document.body.classList.remove('showkeys');
+  const cmdOn=$('#cmd').classList.contains('on'), shOn=$('#sheet').classList.contains('on');
+  if(cmdOn){
+    const n=cmdItems().length;
+    if(e.key==='Escape'){closeCmd();return}
+    if(e.key==='ArrowDown'){e.preventDefault();CMD.i=(CMD.i+1)%n;renderCmd();return}
+    if(e.key==='ArrowUp'){e.preventDefault();CMD.i=(CMD.i-1+n)%n;renderCmd();return}
+    if(e.key==='Enter'){e.preventDefault();if(e.altKey){const q=CMD.q||cmdItems()[CMD.i]?.label;closeCmd();S.o='ask';S.ans='Pre-scripted sample answer about “'+esc(q)+'”.';render();return} runCmd(CMD.i,e.shiftKey);return}
+  }
+  if(shOn&&e.key==='Escape'){$('#sheet').classList.remove('on');syncDim();return}
+  if(S.peek){ if(e.key==='Escape'){S.peek=null;render();return} if(e.key==='Enter'){e.preventDefault();const r=S.peek;S.peek=null;e.shiftKey?openBeside(r):navigate(r);return} }
+  for(const k of KEYS){ if(match(e,k.k)){e.preventDefault(); if(cmdOn)closeCmd(); if(shOn&&k.k!=='mod+/'){$('#sheet').classList.remove('on');syncDim()} k.run(); return} }
+  if(e.key==='Escape'&&!e.target.closest('input,textarea')){
+    if(S.o&&!S.pin){S.o=null;render()} else if(S.fm){toggleFm()} else if(S.zoom>=0){toggleZoom()}
+  }
+});
+document.addEventListener('keyup',e=>{if(e.key==='Meta'||e.key==='Control'){clearTimeout(holdT);document.body.classList.remove('showkeys')}});
+addEventListener('blur',()=>document.body.classList.remove('showkeys'));
+addEventListener('resize',()=>{if(narrow()&&S.sb&&!S.sbAuto){S.sb=false} render()});
+
+/* boot */
+if(narrow()) S.sb=false;
+if(!fromHash()) {S.panes=['chat/atlas','tasks/atlas'];S.f=0;S.o='info'}
+render();
+</script>
+</body>
+</html>
