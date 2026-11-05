@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Morning brief — Dawn">
+  <style>
+    .sm{display:none}
+    @media (max-width:32px){.d{display:none}.sm{display:inline}.lg{display:none}}
+    @media (max-width:56px){.xl{display:none}}
+  </style>
+  <defs>
+    <clipPath id="c"><circle cx="48" cy="48" r="48"/></clipPath>
+    <radialGradient id="bg" cx="30%" cy="20%" r="95%">
+      <stop offset="0" stop-color="#FFF5FA"/><stop offset="1" stop-color="#EFCBEA"/>
+    </radialGradient>
+    <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#FFE7A8"/><stop offset=".65" stop-color="#FFD39A" stop-opacity=".8"/><stop offset="1" stop-color="#FFC9A0" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="body" x1="0.35" y1="0" x2="0.65" y2="1">
+      <stop offset="0" stop-color="#B9A2FF"/><stop offset=".5" stop-color="#D98CE6"/><stop offset="1" stop-color="#FF8FB6"/>
+    </linearGradient>
+    <linearGradient id="wing" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9C7CF2"/><stop offset="1" stop-color="#7C5BE0"/>
+    </linearGradient>
+    <linearGradient id="tuft" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#F59E0B"/><stop offset="1" stop-color="#FDE68A"/>
+    </linearGradient>
+    <linearGradient id="beak" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFC94D"/><stop offset="1" stop-color="#F08A0C"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rim" cx="45%" cy="35%" r="62%">
+      <stop offset=".72" stop-color="#4C1D95" stop-opacity="0"/><stop offset="1" stop-color="#4C1D95" stop-opacity=".28"/>
+    </radialGradient>
+    <radialGradient id="iris" cx="45%" cy="40%" r="60%">
+      <stop offset="0" stop-color="#6D3FB8"/><stop offset=".6" stop-color="#2A1446"/><stop offset="1" stop-color="#160A26"/>
+    </radialGradient>
+  </defs>
+  <g clip-path="url(#c)">
+    <rect width="96" height="96" fill="url(#bg)"/>
+    <circle class="d" cx="48" cy="62" r="46" fill="url(#sun)"/>
+    <ellipse cx="48" cy="94" rx="26" ry="5" fill="#4C1D95" opacity=".14"/>
+    <!-- feathered wings, tips out -->
+    <path d="M24 56 C13 60 9 72 12 82 C15 78 18 77 20 78 C19 74 21 72 24 72 Z" fill="url(#wing)"/>
+    <path d="M72 56 C83 60 87 72 84 82 C81 78 78 77 76 78 C77 74 75 72 72 72 Z" fill="url(#wing)"/>
+    <!-- tuft: three sunrise feathers -->
+    <path d="M48 33 C43.5 25 45 16 50.5 10.5 C51.5 18 53 26 48 33 Z" fill="url(#tuft)"/>
+    <path d="M44 34 C37.5 30 35.5 23 37.5 19 C41 22.5 44.5 28 44 34 Z" fill="url(#tuft)"/>
+    <path d="M52 34 C58.5 30 60.5 23 58.5 19 C55 22.5 51.5 28 52 34 Z" fill="url(#tuft)"/>
+    <!-- body: round, slightly pear -->
+    <path d="M48 31 C66 31 77 45 77 62 C77 80 64 92 48 92 C32 92 19 80 19 62 C19 45 30 31 48 31 Z" fill="url(#body)"/>
+    <path d="M48 31 C66 31 77 45 77 62 C77 80 64 92 48 92 C32 92 19 80 19 62 C19 45 30 31 48 31 Z" fill="url(#rim)"/>
+    <ellipse cx="35" cy="43" rx="12" ry="8" fill="url(#shine)"/>
+    <!-- breast -->
+    <ellipse cx="48" cy="79" rx="17" ry="12" fill="#FFF3F0" opacity=".95"/>
+    <!-- bright eyes -->
+    <g class="lg">
+      <circle cx="36.5" cy="56" r="5.6" fill="url(#iris)"/><circle cx="59.5" cy="56" r="5.6" fill="url(#iris)"/>
+      <circle cx="38.4" cy="53.9" r="2.1" fill="#fff"/><circle cx="61.4" cy="53.9" r="2.1" fill="#fff"/>
+      <circle class="xl" cx="34.9" cy="58.2" r=".9" fill="#fff" opacity=".8"/><circle class="xl" cx="57.9" cy="58.2" r=".9" fill="#fff" opacity=".8"/>
+    </g>
+    <g class="sm" fill="#2A1446"><circle cx="36.5" cy="56" r="6"/><circle cx="59.5" cy="56" r="6"/></g>
+    <!-- beak: clear, two-part -->
+    <path d="M41.5 62.5 Q48 57.5 54.5 62.5 Q48 65.5 41.5 62.5 Z" fill="url(#beak)"/>
+    <path d="M43 63.2 Q48 65.8 53 63.2 Q48 70 43 63.2 Z" fill="#E07A0A"/>
+    <ellipse class="d" cx="28" cy="65" rx="4.4" ry="2.6" fill="#FF5E9A" opacity=".38"/>
+    <ellipse class="d" cx="68" cy="65" rx="4.4" ry="2.6" fill="#FF5E9A" opacity=".38"/>
+  </g>
+  <circle cx="48" cy="48" r="47.4" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.2"/>
+</svg>
