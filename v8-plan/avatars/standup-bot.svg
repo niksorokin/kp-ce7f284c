@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Standup bot — Sprout">
+  <style>
+    .sm{display:none}
+    @media (max-width:32px){.d{display:none}.sm{display:inline}.lg{display:none}}
+    @media (max-width:56px){.xl{display:none}}
+  </style>
+  <defs>
+    <clipPath id="c"><circle cx="48" cy="48" r="48"/></clipPath>
+    <radialGradient id="bg" cx="30%" cy="22%" r="90%">
+      <stop offset="0" stop-color="#F3FFF6"/><stop offset="1" stop-color="#B8EBCB"/>
+    </radialGradient>
+    <linearGradient id="body" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#7BEBA8"/><stop offset=".5" stop-color="#2FBF6A"/><stop offset="1" stop-color="#15803D"/>
+    </linearGradient>
+    <linearGradient id="pot" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F29469"/><stop offset="1" stop-color="#C24F33"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+  <linearGradient id="rim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset=".35" stop-color="#fff" stop-opacity="0"/><stop offset=".75" stop-color="#0B3D1F" stop-opacity="0"/><stop offset="1" stop-color="#0B3D1F" stop-opacity=".28"/>
+    </linearGradient>
+  </defs>
+  <g clip-path="url(#c)">
+    <rect width="96" height="96" fill="url(#bg)"/>
+    <ellipse cx="48" cy="94" rx="26" ry="5" fill="#14532D" opacity=".14"/>
+    <g transform="translate(48 96) scale(1.07) translate(-48 -94)">
+    <!-- arms: left relaxed, right waving "hi team" -->
+    <g fill="url(#body)">
+      <rect x="17" y="38" width="10" height="24" rx="5"/>
+      <rect x="17" y="52" width="20" height="10" rx="5"/>
+      <rect x="69" y="27" width="10" height="27" rx="5"/>
+      <rect x="59" y="44" width="20" height="10" rx="5"/>
+    </g>
+    <!-- body -->
+    <rect x="29" y="22" width="38" height="66" rx="19" fill="url(#body)"/>
+    <rect x="29" y="22" width="38" height="66" rx="19" fill="url(#rim)"/>
+    <ellipse cx="39" cy="35" rx="7" ry="11" fill="url(#shine)"/>
+    <path class="xl" d="M48 30 V80" stroke="#0B3D1F" stroke-opacity=".10" stroke-width="2" stroke-linecap="round"/>
+    <!-- spines -->
+    <g class="d" fill="#ECFFF3" opacity=".85">
+      <circle cx="34" cy="72" r="1"/><circle cx="42" cy="78" r="1"/><circle cx="55" cy="76" r="1"/><circle cx="62" cy="68" r="1"/>
+      <circle cx="21" cy="44" r="1"/><circle cx="75" cy="33" r="1"/>
+    </g>
+    <!-- pot -->
+    <path d="M30 84 H66 L62 100 H34 Z" fill="url(#pot)"/>
+    <rect x="26" y="80" width="44" height="9" rx="4.5" fill="#F7A47E"/>
+    <!-- flower -->
+    <g transform="translate(48 21)">
+      <g fill="#FF8DB9">
+        <circle cx="0" cy="-5" r="4.4"/><circle cx="4.8" cy="-1.5" r="4.4"/><circle cx="3" cy="4" r="4.4"/>
+        <circle cx="-3" cy="4" r="4.4"/><circle cx="-4.8" cy="-1.5" r="4.4"/>
+      </g>
+      <circle r="3" fill="#FDE68A"/>
+    </g>
+    <!-- face: happy closed eyes, open smile -->
+    <g class="lg" fill="none" stroke="#0F3B22" stroke-width="3" stroke-linecap="round">
+      <path d="M35.5 50 Q39.5 45 43.5 50"/><path d="M52.5 50 Q56.5 45 60.5 50"/>
+    </g>
+    <g class="sm" fill="#0F3B22"><circle cx="39.5" cy="49" r="4"/><circle cx="56.5" cy="49" r="4"/></g>
+    <path d="M41.5 57 Q48 66 54.5 57 Z" fill="#0F3B22" stroke="#0F3B22" stroke-width="1.6" stroke-linejoin="round"/>
+    <ellipse class="d" cx="48" cy="61.2" rx="3.2" ry="1.8" fill="#FF7AA8"/>
+    <ellipse class="d" cx="34" cy="57" rx="3.8" ry="2.3" fill="#FF5C93" opacity=".55"/>
+    <ellipse class="d" cx="62" cy="57" rx="3.8" ry="2.3" fill="#FF5C93" opacity=".55"/>
+  </g>
+    </g>
+  <circle cx="48" cy="48" r="47.4" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.2"/>
+</svg>
