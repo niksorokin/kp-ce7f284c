@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>kumiya v8 · bot avatars</title>
+<style>
+  :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;font-size:13px}
+  body{margin:0;background:#DCE3F5;padding:28px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  h1{grid-column:1/-1;margin:0 0 2px;font-size:15px;font-weight:600;color:#1d2340}
+  h1 span{font-weight:400;color:#69708c;margin-left:8px}
+  .panel{border-radius:18px;padding:22px 24px;box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 10px 30px rgba(30,40,90,.10)}
+  .light{background:#FBFAF8;color:#1b1f33}
+  .dark{background:#17181D;color:#ECEDF2}
+  .panel h2{margin:0 0 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;opacity:.55}
+  .row{display:grid;grid-template-columns:150px 40px 60px 112px 1fr;align-items:center;gap:10px;padding:10px 0;border-top:1px solid rgba(127,127,140,.14)}
+  .row:first-of-type{border-top:0}
+  .name b{display:block;font-weight:600;font-size:13px}
+  .name i{font-style:normal;font-size:12px;opacity:.55}
+  img{display:block}
+  .ctx{display:grid;gap:8px}
+  .side{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:8px;font-size:13px}
+  .light .side{background:#EEF0F6}
+  .dark .side{background:#24262E}
+  .side em{margin-left:auto;font-style:normal;font-size:11px;opacity:.5}
+  .card{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:12px;font-size:12px}
+  .light .card{background:#fff;box-shadow:0 0 0 1px #E7E8EE}
+  .dark .card{background:#1F2027;box-shadow:0 0 0 1px #2D2F38}
+  .card b{display:block;font-size:13px}
+  .card span{opacity:.6}
+  .dot{display:inline-block;width:6px;height:6px;border-radius:3px;background:#22A06B;margin-right:5px;vertical-align:1px}
+  .sizes{grid-column:1/-1;font-size:11px;color:#69708c;margin-top:-6px}
+</style>
+</head>
+<body>
+<h1>kumiya v8 · bot avatars <span>SVG only · 24 / 40 / 96 px · one file per bot · details drop out under 32 px via an SVG media query</span></h1>
+<div class="sizes"></div>
+<script>
+  const bots = [
+    ['metrics-bot','Metrics bot','Tally · indigo · the dry analyst','Next Mon 09:00'],
+    ['standup-bot','Standup bot','Sprout · green · the cheerful host','Next today 10:00'],
+    ['support-bot','Support bot','Mo · cyan · the calm listener','Waiting for you'],
+    ['morning-brief','Morning brief','Dawn · rose → lilac · the early bird','Next tomorrow 07:30'],
+    ['lead-qualifier','Lead qualifier','Scout · copper · the sharp-eyed fox','Running'],
+  ];
+  for (const theme of ['light','dark']) {
+    const p = document.createElement('section');
+    p.className = 'panel ' + theme;
+    p.innerHTML = `<h2>${theme} · 24 · 40 · 96 · in context</h2>`;
+    for (const [id,name,ch,st] of bots) {
+      const r = document.createElement('div');
+      r.className = 'row';
+      r.innerHTML = `<div class="name"><b>${name}</b><i>${ch}</i></div>
+        <img src="${id}.svg" width="24" height="24" alt="">
+        <img src="${id}.svg" width="40" height="40" alt="">
+        <img src="${id}.svg" width="96" height="96" alt="">
+        <div class="ctx">
+          <div class="side"><img src="${id}.svg" width="20" height="20" alt="">${name}<em>⌘</em></div>
+          <div class="card"><img src="${id}.svg" width="40" height="40" alt=""><div><b>${name}</b><span><i class="dot"></i>${st}</span></div></div>
+        </div>`;
+      p.appendChild(r);
+    }
+    document.body.appendChild(p);
+  }
+</script>
+</body>
+</html>
