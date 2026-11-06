@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Pebble">
+  <style>.sm{display:none}@media (max-width:32px){.d{display:none}.sm{display:inline}.lg{display:none}}</style>
+  <defs>
+    <clipPath id="c"><circle cx="48" cy="48" r="48"/></clipPath>
+    <radialGradient id="bg" cx="30%" cy="22%" r="90%"><stop offset="0" stop-color="#F7F7F5"/><stop offset="1" stop-color="#D9D8D2"/></radialGradient>
+    <linearGradient id="body" x1=".15" y1="0" x2=".85" y2="1"><stop offset="0" stop-color="#C9C6BE"/><stop offset=".55" stop-color="#9C978C"/><stop offset="1" stop-color="#6E695F"/></linearGradient>
+    <radialGradient id="shine" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff" stop-opacity=".6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  </defs>
+  <g clip-path="url(#c)">
+    <rect width="96" height="96" fill="url(#bg)"/>
+    <ellipse cx="48" cy="90" rx="30" ry="5" fill="#3B382F" opacity=".14"/>
+    <path d="M16 74 C14 52 28 34 50 34 C72 34 84 52 80 72 C78 86 64 90 48 90 C30 90 18 86 16 74 Z" fill="url(#body)"/>
+    <ellipse cx="36" cy="46" rx="12" ry="7" fill="url(#shine)"/>
+    <g class="lg"><ellipse cx="38" cy="62" rx="5" ry="6" fill="#2A2721"/><ellipse cx="58" cy="62" rx="5" ry="6" fill="#2A2721"/><circle cx="39.6" cy="59.8" r="1.8" fill="#fff"/><circle cx="59.6" cy="59.8" r="1.8" fill="#fff"/></g>
+    <g class="sm"><circle cx="38" cy="62" r="7" fill="#2A2721"/><circle cx="58" cy="62" r="7" fill="#2A2721"/></g>
+    <path class="d" d="M43 72 Q48 76 53 72" fill="none" stroke="#2A2721" stroke-width="2.4" stroke-linecap="round"/>
+    <g class="d" fill="#F2A7A0" opacity=".45"><ellipse cx="29" cy="70" rx="5" ry="3"/><ellipse cx="67" cy="70" rx="5" ry="3"/></g>
+  </g>
+  <circle cx="48" cy="48" r="47.5" fill="none" stroke="#fff" stroke-opacity=".55"/>
+</svg>
